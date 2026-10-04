@@ -1739,3 +1739,128 @@ footer button{
   }
 
 }
+/* =========================================================
+   BTC KILLER — FINAL SNIPER ENTRY OVERRIDE
+   ========================================================= */
+
+.sniperPanel .entryGrid.compactEntry {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  margin-top: 14px !important;
+}
+
+.sniperPanel .entryTile {
+  min-width: 0 !important;
+  min-height: 88px !important;
+  padding: 16px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  background: var(--panel2) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+}
+
+.sniperPanel .entryTile span {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+  color: var(--muted) !important;
+}
+
+.sniperPanel .entryTile b {
+  display: block !important;
+  font-size: 22px !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+  color: var(--text) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.sniperPanel .stageCard b,
+.sniperPanel .directionCard b {
+  font-size: 26px !important;
+}
+
+.sniperPanel .askCard b {
+  color: var(--text) !important;
+}
+
+.sniperPanel .qualityCard b {
+  color: var(--gold) !important;
+}
+
+.sniperPanel .sniper.entry + .entryGrid .qualityCard b {
+  color: var(--up) !important;
+}
+
+.sniperPanel .sniper.setup + .entryGrid .qualityCard b {
+  color: var(--gold) !important;
+}
+
+.sniperPanel .sniperMain {
+  min-width: 0 !important;
+}
+
+.sniperPanel .sniperMain strong {
+  font-size: 34px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+}
+
+.sniperPanel .sniperReason {
+  min-width: 0 !important;
+}
+
+.sniperPanel .sniperReason span {
+  display: block !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* UP / DOWN ASK COLORS */
+.bookCard.up b,
+#upAsk {
+  color: var(--up) !important;
+}
+
+.bookCard.down b,
+#downAsk {
+  color: var(--down) !important;
+}
+
+/* MOBILE */
+@media (max-width: 800px) {
+  .sniperPanel .entryGrid.compactEntry {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sniperPanel .entryGrid.compactEntry {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .sniperPanel .entryTile {
+    min-height: 78px !important;
+    padding: 12px !important;
+  }
+
+  .sniperPanel .entryTile b {
+    font-size: 19px !important;
+  }
+
+  .sniperPanel .stageCard b,
+  .sniperPanel .directionCard b {
+    font-size: 22px !important;
+  }
+
+  .sniperPanel .sniperMain strong {
+    font-size: 28px !important;
+  }
+}
