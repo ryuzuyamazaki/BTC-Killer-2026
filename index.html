@@ -376,6 +376,7 @@
   <div id="splitBody">
 
     <div class="modeLine">
+
       <span>MODE</span>
 
       <select id="tradeMode">
@@ -383,6 +384,7 @@
         <option value="oneway">ONE-DIRECTION</option>
         <option value="split">SPLIT / HOLD</option>
       </select>
+
     </div>
 
     <div class="splitGrid">
@@ -419,8 +421,11 @@
 <section class="panel diagnostics">
 
   <div class="panelHead">
+
     <h2>ENGINE DIAGNOSTICS</h2>
+
     <span>BACKGROUND SIGNALS</span>
+
   </div>
 
   <div class="diagGrid">
@@ -524,9 +529,11 @@
   </div>
 
   <div id="entryHistory" class="history">
+
     <div class="historyEmpty">
       No confirmed sniper entries yet.
     </div>
+
   </div>
 
 </section>
@@ -537,13 +544,17 @@
 <section class="panel resultsPanel">
 
   <div class="panelHead">
+
     <h2>LAST 10 POLYMARKET RESULTS</h2>
+
   </div>
 
   <div id="recentResults" class="recentResults">
+
     <span class="historyEmpty">
       Loading results…
     </span>
+
   </div>
 
 </section>
@@ -614,33 +625,8 @@
 
 </footer>
 
+
 <script src="app.js"></script>
 
 </body>
-  .sniperMain{
-  min-width:0;
-}
-
-.askCard b{
-  color:#fff;
-  font-variant-numeric:tabular-nums;
-}
-
-.qualityCard b{
-  color:#f3c64d;
-}
-
-.sniper.entry .qualityCard b{
-  color:var(--up);
-}
-
-.sniper.setup .qualityCard b{
-  color:var(--gold);
-}
-
-@media(max-width:650px){
-  .sniperMain{
-    width:100%;
-  }
-}
 </html>
