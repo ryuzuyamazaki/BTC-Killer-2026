@@ -1,100 +1,330 @@
 const $=id=>document.getElementById(id), N=x=>Number(x)||0;
-let market=null, polyWS=null, polyPing=null;
-let signalState={stage:'WAIT',side:'WAIT',confidence:50,generatedAt:0,validUntil:0,potential:0,edge:0,reason:'Warming up'};
-const historyEntries=[];
-let storedEntries=[];
-let calibration={bins:{},total:0,correct:0,brierSum:0};
-let loggedEntryId='';
-const binance={bid:0,ask:0,last:0,bidSize:0,askSize:0,ts:0,flow:0,bids:[],asks:[],depthTs:0};
-const hist=[], trades=[], polyHist=[]; const books=new Map();
-let selectedMode='precision', tradeMode='off', lastUpProb=.5, lastDownProb=.5, lastUpFlash=0, lastDownFlash=0;
-let recentResults=[];
-let sectionVisibility={binanceBody:true,edgeBody:true,splitBody:true};
 
-const modeConfig={
- precision:{minConf:70,minEdge:.055,minMomentum:.055,minFlow:.050,minPoly:.020,maxVol:2.0,persist:900,cooldown:30000},
- balanced:{minConf:64,minEdge:.035,minMomentum:.040,minFlow:.035,minPoly:.015,maxVol:2.35,persist:700,cooldown:25000},
- momentum:{minConf:67,minEdge:.045,minMomentum:.065,minFlow:.030,minPoly:.010,maxVol:2.6,persist:650,cooldown:25000},
- liquidity:{minConf:68,minEdge:.045,minMomentum:.035,minFlow:.040,minPoly:.025,maxVol:2.25,persist:850,cooldown:30000},
- auto:{minConf:72,minEdge:.065,minMomentum:.060,minFlow:.055,minPoly:.025,maxVol:1.9,persist:1200,cooldown:45000},
- edge:{minConf:76,minEdge:.085,minMomentum:.070,minFlow:.060,minPoly:.035,maxVol:1.75,persist:1500,cooldown:60000}
+let market=null, polyWS=null, polyPing=null;
+
+let signalState={
+ stage:'WAIT',
+ side:'WAIT',
+ confidence:50,
+ generatedAt:0,
+ validUntil:0,
+ potential:0,
+ edge:0,
+ reason:'Warming up'
 };
 
+const historyEntries=[];
+let storedEntries=[];
+
+let calibration={
+ bins:{},
+ total:0,
+ correct:0,
+ brierSum:0
+};
+
+let loggedEntryId='';
+
+const binance={
+ bid:0,
+ ask:0,
+ last:0,
+ bidSize:0,
+ askSize:0,
+ ts:0,
+ flow:0,
+ bids:[],
+ asks:[],
+ depthTs:0
+};
+
+const hist=[];
+const trades=[];
+const polyHist=[];
+const books=new Map();
+
+let selectedMode='precision';
+let tradeMode='off';
+
+let lastUpProb=.5;
+let lastDownProb=.5;
+let lastUpFlash=0;
+let lastDownFlash=0;
+
+let recentResults=[];
+
+let sectionVisibility={
+ binanceBody:true,
+ edgeBody:true,
+ splitBody:true
+};
+
+const comparisonHist=[];
+
+let binanceWsLastBookTicker=0;
+let binanceFallbackTimer=null;
+let binanceFallbackMonitor=null;
+
+
+/* =========================================================
+   MODE CONFIG
+   ========================================================= */
+
+const modeConfig={
+ precision:{
+  minConf:70,
+  minEdge:.055,
+  minMomentum:.055,
+  minFlow:.050,
+  minPoly:.020,
+  maxVol:2.0,
+  persist:900,
+  cooldown:30000
+ },
+
+ balanced:{
+  minConf:64,
+  minEdge:.035,
+  minMomentum:.040,
+  minFlow:.035,
+  minPoly:.015,
+  maxVol:2.35,
+  persist:700,
+  cooldown:25000
+ },
+
+ momentum:{
+  minConf:67,
+  minEdge:.045,
+  minMomentum:.065,
+  minFlow:.030,
+  minPoly:.010,
+  maxVol:2.6,
+  persist:650,
+  cooldown:25000
+ },
+
+ liquidity:{
+  minConf:68,
+  minEdge:.045,
+  minMomentum:.035,
+  minFlow:.040,
+  minPoly:.025,
+  maxVol:2.25,
+  persist:850,
+  cooldown:30000
+ },
+
+ auto:{
+  minConf:72,
+  minEdge:.065,
+  minMomentum:.060,
+  minFlow:.055,
+  minPoly:.025,
+  maxVol:1.9,
+  persist:1200,
+  cooldown:45000
+ },
+
+ edge:{
+  minConf:76,
+  minEdge:.085,
+  minMomentum:.070,
+  minFlow:.060,
+  minPoly:.035,
+  maxVol:1.75,
+  persist:1500,
+  cooldown:60000
+ }
+};
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const pct=v=>`${(N(v)*100).toFixed(3)}%`;
-const fmtPct=v=>`${N(v)>=0?'+':''}${(N(v)*100).toFixed(3)}%`;
-const cents=v=>N(v)?`${(N(v)*100).toFixed(2)}¢`:'—';
+
+const pct=v=>
+ `${(N(v)*100).toFixed(3)}%`;
+
+const fmtPct=v=>
+ `${N(v)>=0?'+':''}${(N(v)*100).toFixed(3)}%`;
+
+const cents=v=>
+ N(v)?`${(N(v)*100).toFixed(2)}¢`:'—';
+
 
 function setMove(id,box,v){
- const e=$(id),b=$(box),n=N(v);
+
+ const e=$(id);
+ const b=$(box);
+ const n=N(v);
+
+ if(!e||!b)return;
+
  e.textContent=pct(n);
- e.style.color=n>0?'#4be28f':n<0?'#ff8585':'';
- b.classList.remove('flashUp','flashDown');
+
+ e.style.color=
+  n>0
+   ?'#4be28f'
+   :n<0
+    ?'#ff8585'
+    :'';
+
+ b.classList.remove(
+  'flashUp',
+  'flashDown'
+ );
+
  if(Math.abs(n)>0.000001){
+
   void b.offsetWidth;
-  b.classList.add(n>0?'flashUp':'flashDown');
+
+  b.classList.add(
+   n>0
+    ?'flashUp'
+    :'flashDown'
+  );
  }
 }
 
+
+/* =========================================================
+   GENERIC WEBSOCKET
+   ========================================================= */
+
 function openWS(url,onOpen,onMsg){
- let ws,delay=500;
+
+ let ws;
+ let delay=500;
+
  const go=()=>{
+
   try{
+
    ws=new WebSocket(url);
+
    ws.onopen=()=>{
+
     delay=500;
+
     onOpen?.(ws);
    };
+
    ws.onmessage=e=>{
+
     try{
      onMsg(JSON.parse(e.data));
     }catch{}
    };
+
    ws.onerror=()=>{};
+
    ws.onclose=()=>{
+
     setTimeout(go,delay);
-    delay=Math.min(10000,delay*2);
+
+    delay=Math.min(
+     10000,
+     delay*2
+    );
    };
+
   }catch{
+
    setTimeout(go,delay);
-   delay=Math.min(10000,delay*2);
+
+   delay=Math.min(
+    10000,
+    delay*2
+   );
   }
  };
+
  go();
- return()=>{try{ws?.close()}catch{}};
+
+ return()=>{
+  try{
+   ws?.close();
+  }catch{}
+ };
 }
 
-function updateBinance(bid,ask,last,bidSize,askSize,ts=Date.now()){
- if(bid>0)binance.bid=bid;
- if(ask>0)binance.ask=ask;
+
+/* =========================================================
+   BINANCE DATA
+   ========================================================= */
+
+function updateBinance(
+ bid,
+ ask,
+ last,
+ bidSize,
+ askSize,
+ ts=Date.now()
+){
+
+ if(bid>0)
+  binance.bid=bid;
+
+ if(ask>0)
+  binance.ask=ask;
 
  if(last>0){
+
   binance.last=last;
-  hist.push({ts,p:last});
-  while(hist.length>5000)hist.shift();
+
+  hist.push({
+   ts,
+   p:last
+  });
+
+  while(hist.length>5000)
+   hist.shift();
  }
 
- if(bidSize>=0)binance.bidSize=bidSize;
- if(askSize>=0)binance.askSize=askSize;
+ if(bidSize>=0)
+  binance.bidSize=bidSize;
+
+ if(askSize>=0)
+  binance.askSize=askSize;
+
  binance.ts=ts;
 }
 
-function setDepth(bids,asks,ts=Date.now()){
+
+function setDepth(
+ bids,
+ asks,
+ ts=Date.now()
+){
+
  binance.bids=(bids||[])
-  .map(x=>({p:N(x[0]),q:N(x[1])}))
+  .map(x=>({
+   p:N(x[0]),
+   q:N(x[1])
+  }))
   .filter(x=>x.p>0&&x.q>0)
   .sort((a,b)=>b.p-a.p)
   .slice(0,20);
 
  binance.asks=(asks||[])
-  .map(x=>({p:N(x[0]),q:N(x[1])}))
+  .map(x=>({
+   p:N(x[0]),
+   q:N(x[1])
+  }))
   .filter(x=>x.p>0&&x.q>0)
   .sort((a,b)=>a.p-b.p)
   .slice(0,20);
 
  binance.depthTs=ts;
 
- if(binance.bids[0]&&binance.asks[0]){
+ if(
+  binance.bids[0]&&
+  binance.asks[0]
+ ){
+
   updateBinance(
    binance.bids[0].p,
    binance.asks[0].p,
@@ -108,18 +338,20 @@ function setDepth(bids,asks,ts=Date.now()){
 
 
 /* =========================================================
-   BINANCE REST FALLBACK
-   Primary feed remains WebSocket.
-   REST refreshes BTCUSDT bid/ask every 1 second.
+   ADAPTIVE BINANCE REST FALLBACK
    ========================================================= */
 
 async function pollBinanceFallback(){
+
  try{
+
   const r=await fetch(
    'https://api.binance.com/api/v3/ticker/bookTicker?symbol=BTCUSDT',
    {
     cache:'no-store',
-    headers:{'Accept':'application/json'}
+    headers:{
+     Accept:'application/json'
+    }
    }
   );
 
@@ -129,20 +361,55 @@ async function pollBinanceFallback(){
 
   const bid=N(x.bidPrice);
   const ask=N(x.askPrice);
-  const bidQty=N(x.bidQty);
-  const askQty=N(x.askQty);
 
   if(bid>0&&ask>0){
+
    updateBinance(
     bid,
     ask,
     (bid+ask)/2,
-    bidQty,
-    askQty,
+    N(x.bidQty),
+    N(x.askQty),
     Date.now()
    );
   }
+
  }catch{}
+}
+
+
+function startBinanceFallback(){
+
+ if(binanceFallbackTimer)
+  return;
+
+ pollBinanceFallback();
+
+ binanceFallbackTimer=
+  setInterval(()=>{
+
+   if(
+    !binanceWsLastBookTicker||
+    Date.now()-binanceWsLastBookTicker>2500
+   ){
+
+    pollBinanceFallback();
+   }
+
+  },1000);
+}
+
+
+function stopBinanceFallback(){
+
+ if(binanceFallbackTimer){
+
+  clearInterval(
+   binanceFallbackTimer
+  );
+
+  binanceFallbackTimer=null;
+ }
 }
 
 
@@ -161,13 +428,18 @@ function startBinance(){
 
    if(d.e==='bookTicker'){
 
+    binanceWsLastBookTicker=
+     Date.now();
+
+    stopBinanceFallback();
+
     updateBinance(
      N(d.b),
      N(d.a),
      0,
      N(d.B),
      N(d.A),
-     N(d.E)
+     N(d.E)||Date.now()
     );
 
    }
@@ -186,16 +458,18 @@ function startBinance(){
 
     const q=N(d.q);
 
-    binance.flow+=((d.m?-1:1)*q);
+    const flow=
+     (d.m?-1:1)*q;
+
+    binance.flow+=flow;
 
     trades.push({
      ts:N(d.T)||Date.now(),
-     flow:(d.m?-1:1)*q
+     flow
     });
 
-    while(trades.length>5000){
+    while(trades.length>5000)
      trades.shift();
-    }
 
     updateBinance(
      0,
@@ -209,13 +483,25 @@ function startBinance(){
   }
  );
 
- /* Immediate REST request so the page doesn't wait for WS */
- pollBinanceFallback();
+ if(!binanceFallbackMonitor){
 
- /* Continuous 1-second fallback */
- setInterval(()=>{
-  pollBinanceFallback();
- },1000);
+  binanceFallbackMonitor=
+   setInterval(()=>{
+
+    if(
+     !binanceWsLastBookTicker||
+     Date.now()-binanceWsLastBookTicker>2500
+    ){
+
+     startBinanceFallback();
+
+    }else{
+
+     stopBinanceFallback();
+    }
+
+   },1000);
+ }
 }
 
 
@@ -224,75 +510,145 @@ function startBinance(){
    ========================================================= */
 
 function parseArr(v){
- if(Array.isArray(v))return v;
+
+ if(Array.isArray(v))
+  return v;
 
  if(typeof v==='string'){
+
   try{
+
    const x=JSON.parse(v);
-   return Array.isArray(x)?x:[];
+
+   return Array.isArray(x)
+    ?x
+    :[];
+
   }catch{}
  }
 
  return[];
 }
 
-function tokenPair(m){
- const ids=parseArr(m.clobTokenIds??m.clob_token_ids);
- const outs=parseArr(m.outcomes);
 
- let up=null,down=null;
+function tokenPair(m){
+
+ const ids=
+  parseArr(
+   m.clobTokenIds??
+   m.clob_token_ids
+  );
+
+ const outs=
+  parseArr(m.outcomes);
+
+ let up=null;
+ let down=null;
 
  outs.forEach((o,i)=>{
-  const z=String(o).toLowerCase().trim();
 
-  if(/^up(?:\b|\s)/.test(z)&&ids[i])
+  const z=
+   String(o)
+    .toLowerCase()
+    .trim();
+
+  if(
+   /^up(?:\b|\s)/.test(z)&&
+   ids[i]
+  )
    up=String(ids[i]);
 
-  if(/^down(?:\b|\s)/.test(z)&&ids[i])
+  if(
+   /^down(?:\b|\s)/.test(z)&&
+   ids[i]
+  )
    down=String(ids[i]);
  });
 
- if((!up||!down)&&ids.length===2){
+ if(
+  (!up||!down)&&
+  ids.length===2
+ ){
+
   up=up||String(ids[0]||'');
   down=down||String(ids[1]||'');
  }
 
- return up&&down?{up,down}:null;
+ return up&&down
+  ?{up,down}
+  :null;
 }
 
+
 async function discoverDirect(){
- const now=Math.floor(Date.now()/1000);
- const baseTs=now-now%300;
- const candidates=[baseTs,baseTs-300,baseTs+300];
+
+ const now=
+  Math.floor(
+   Date.now()/1000
+  );
+
+ const baseTs=
+  now-now%300;
+
+ const candidates=[
+  baseTs,
+  baseTs-300,
+  baseTs+300
+ ];
 
  for(const ts of candidates){
 
-  const slug=`btc-updown-5m-${ts}`;
+  const slug=
+   `btc-updown-5m-${ts}`;
 
   for(const path of [
+
    `https://gamma-api.polymarket.com/events?slug=${encodeURIComponent(slug)}`,
+
    `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}`
+
   ]){
 
    try{
 
-    const r=await fetch(path,{cache:'no-store'});
+    const r=
+     await fetch(
+      path,
+      {cache:'no-store'}
+     );
 
-    if(!r.ok)continue;
+    if(!r.ok)
+     continue;
 
     const j=await r.json();
-    const arr=Array.isArray(j)?j:(j.data||[]);
-    const events=path.includes('/events')
-     ?arr
-     :arr.map(x=>({markets:[x]}));
+
+    const arr=
+     Array.isArray(j)
+      ?j
+      :(j.data||[]);
+
+    const events=
+     path.includes('/events')
+      ?arr
+      :arr.map(x=>({
+       markets:[x]
+      }));
 
     for(const ev of events){
 
      for(const m of ev.markets||[]){
 
       const t=tokenPair(m);
-      const end=m.endDate||m.endDateIso||ev.endDate;
-      const endTs=Math.floor(new Date(end).getTime()/1000);
+
+      const end=
+       m.endDate||
+       m.endDateIso||
+       ev.endDate;
+
+      const endTs=
+       Math.floor(
+        new Date(end).getTime()/1000
+       );
 
       if(
        t&&
@@ -310,7 +666,11 @@ async function discoverDirect(){
         endTs
        };
 
-       connectPoly([t.up,t.down]);
+       connectPoly([
+        t.up,
+        t.down
+       ]);
+
        return;
       }
      }
@@ -320,69 +680,111 @@ async function discoverDirect(){
   }
  }
 
- throw Error('BTC 5M market discovery failed');
+ throw Error(
+  'BTC 5M market discovery failed'
+ );
 }
+
 
 function setBook(id,bids,asks){
- books.set(String(id),{
-  bids:(bids||[])
-   .map(x=>({
-    price:N(x.price),
-    size:N(x.size)
-   }))
-   .filter(x=>x.price>0&&x.size>0)
-   .sort((a,b)=>b.price-a.price),
 
-  asks:(asks||[])
-   .map(x=>({
-    price:N(x.price),
-    size:N(x.size)
-   }))
-   .filter(x=>x.price>0&&x.size>0)
-   .sort((a,b)=>a.price-b.price),
+ books.set(
+  String(id),
+  {
+   bids:(bids||[])
+    .map(x=>({
+     price:N(x.price),
+     size:N(x.size)
+    }))
+    .filter(
+     x=>x.price>0&&x.size>0
+    )
+    .sort(
+     (a,b)=>b.price-a.price
+    ),
 
-  ts:Date.now()
- });
+   asks:(asks||[])
+    .map(x=>({
+     price:N(x.price),
+     size:N(x.size)
+    }))
+    .filter(
+     x=>x.price>0&&x.size>0
+    )
+    .sort(
+     (a,b)=>a.price-b.price
+    ),
+
+   ts:Date.now()
+  }
+ );
 }
 
+
 function applyPolyDelta(x,root){
- const id=String(x.asset_id||x.assetId||root||'');
+
+ const id=
+  String(
+   x.asset_id||
+   x.assetId||
+   root||
+   ''
+  );
+
  if(!id)return;
 
- const q=books.get(id)||{
-  bids:[],
-  asks:[],
-  ts:0
- };
+ const q=
+  books.get(id)||{
+   bids:[],
+   asks:[],
+   ts:0
+  };
 
- const side=String(x.side||'').toUpperCase()==='BUY'
-  ?q.bids
-  :q.asks;
+ const side=
+  String(x.side||'').toUpperCase()==='BUY'
+   ?q.bids
+   :q.asks;
 
  const p=N(x.price);
  const s=N(x.size);
 
  if(p<=0)return;
 
- const i=side.findIndex(z=>z.price===p);
+ const i=
+  side.findIndex(
+   z=>z.price===p
+  );
 
  if(s<=0){
-  if(i>=0)side.splice(i,1);
+
+  if(i>=0)
+   side.splice(i,1);
+
  }else if(i>=0){
+
   side[i].size=s;
+
  }else{
+
   side.push({
    price:p,
    size:s
   });
  }
 
- q.bids.sort((a,b)=>b.price-a.price);
- q.asks.sort((a,b)=>a.price-b.price);
+ q.bids.sort(
+  (a,b)=>b.price-a.price
+ );
+
+ q.asks.sort(
+  (a,b)=>a.price-b.price
+ );
+
  q.ts=Date.now();
 
  books.set(id,q);
 }
+
 
 function connectPoly(ids){
 
@@ -392,69 +794,116 @@ function connectPoly(ids){
 
  clearInterval(polyPing);
 
- polyWS=new WebSocket(
-  'wss://ws-subscriptions-clob.polymarket.com/ws/market'
- );
+ polyWS=
+  new WebSocket(
+   'wss://ws-subscriptions-clob.polymarket.com/ws/market'
+  );
 
  polyWS.onopen=()=>{
-  polyWS.send(JSON.stringify({
-   assets_ids:ids,
-   type:'market',
-   custom_feature_enabled:true,
-   initial_dump:true
-  }));
 
-  polyPing=setInterval(()=>{
-   try{
-    polyWS.send('PING');
-   }catch{}
-  },10000);
+  polyWS.send(
+   JSON.stringify({
+    assets_ids:ids,
+    type:'market',
+    custom_feature_enabled:true,
+    initial_dump:true
+   })
+  );
+
+  polyPing=
+   setInterval(()=>{
+
+    try{
+     polyWS.send('PING');
+    }catch{}
+
+   },10000);
  };
 
  polyWS.onmessage=e=>{
+
   try{
 
-   const raw=JSON.parse(e.data);
-   const msgs=Array.isArray(raw)?raw:[raw];
+   const raw=
+    JSON.parse(e.data);
+
+   const msgs=
+    Array.isArray(raw)
+     ?raw
+     :[raw];
 
    for(const m of msgs){
 
-    const ev=String(m.event_type||'').toLowerCase();
-    const root=String(m.asset_id||'');
+    const ev=
+     String(
+      m.event_type||''
+     ).toLowerCase();
+
+    const root=
+     String(
+      m.asset_id||''
+     );
 
     if(ev==='book'){
-     setBook(root,m.bids,m.asks);
+
+     setBook(
+      root,
+      m.bids,
+      m.asks
+     );
+
      continue;
     }
 
     if(ev==='price_change'){
-     for(const x of m.price_changes||[])
-      applyPolyDelta(x,x.asset_id||root);
+
+     for(
+      const x of
+      m.price_changes||[]
+     ){
+
+      applyPolyDelta(
+       x,
+       x.asset_id||root
+      );
+     }
+
      continue;
     }
 
     if(ev==='best_bid_ask'){
 
-     const q=books.get(root)||{
-      bids:[],
-      asks:[],
-      ts:0
-     };
+     const q=
+      books.get(root)||{
+       bids:[],
+       asks:[],
+       ts:0
+      };
 
      const bb=N(m.best_bid);
      const aa=N(m.best_ask);
 
-     if(bb>0)
+     if(bb>0){
+
       q.bids=[{
        price:bb,
-       size:N(m.best_bid_size)||q.bids[0]?.size||0
+       size:
+        N(m.best_bid_size)||
+        q.bids[0]?.size||
+        0
       }];
+     }
 
-     if(aa>0)
+     if(aa>0){
+
       q.asks=[{
        price:aa,
-       size:N(m.best_ask_size)||q.asks[0]?.size||0
+       size:
+        N(m.best_ask_size)||
+        q.asks[0]?.size||
+        0
       }];
+     }
 
      q.ts=Date.now();
 
@@ -466,32 +915,52 @@ function connectPoly(ids){
  };
 
  polyWS.onclose=()=>{
+
   clearInterval(polyPing);
 
   setTimeout(()=>{
-   if(market)
-    connectPoly([market.upToken,market.downToken]);
+
+   if(market){
+
+    connectPoly([
+     market.upToken,
+     market.downToken
+    ]);
+   }
+
   },1000);
  };
 
  polyWS.onerror=()=>{
+
   try{
    polyWS.close();
   }catch{}
  };
 }
 
+
 async function restPoly(token){
+
  try{
 
-  const r=await fetch(
-   `https://clob.polymarket.com/book?token_id=${encodeURIComponent(token)}`,
-   {cache:'no-store'}
-  );
+  const r=
+   await fetch(
+    `https://clob.polymarket.com/book?token_id=${encodeURIComponent(token)}`,
+    {
+     cache:'no-store'
+    }
+   );
 
   if(r.ok){
+
    const x=await r.json();
-   setBook(token,x.bids,x.asks);
+
+   setBook(
+    token,
+    x.bids,
+    x.asks
+   );
   }
 
  }catch{}
@@ -503,52 +972,88 @@ async function restPoly(token){
    ========================================================= */
 
 function sample(ms){
+
  const now=Date.now();
 
- for(let i=hist.length-1;i>=0;i--)
-  if(now-hist[i].ts>=ms)
+ for(
+  let i=hist.length-1;
+  i>=0;
+  i--
+ ){
+
+  if(
+   now-hist[i].ts>=ms
+  )
    return hist[i].p;
+ }
 
  return null;
 }
 
+
 function windowReturn(ms){
- const now=Date.now();
- const p=binance.last||(binance.bid+binance.ask)/2;
+
+ const p=
+  binance.last||
+  (binance.bid+binance.ask)/2;
 
  if(!p)return 0;
 
  const q=sample(ms);
 
- return q?p/q-1:0;
+ return q
+  ?p/q-1
+  :0;
 }
+
 
 function regressionSlope(points){
- if(points.length<5)return 0;
+
+ if(points.length<5)
+  return 0;
 
  const n=points.length;
- const mx=(n-1)/2;
- const my=points.reduce((a,x)=>a+x,0)/n;
 
- let num=0,den=0;
+ const mx=(n-1)/2;
+
+ const my=
+  points.reduce(
+   (a,x)=>a+x,
+   0
+  )/n;
+
+ let num=0;
+ let den=0;
 
  for(let i=0;i<n;i++){
-  num+=(i-mx)*(points[i]-my);
-  den+=(i-mx)*(i-mx);
+
+  num+=
+   (i-mx)*
+   (points[i]-my);
+
+  den+=
+   (i-mx)*
+   (i-mx);
  }
 
- return den?num/den:0;
+ return den
+  ?num/den
+  :0;
 }
+
 
 function depthLiquidity(){
 
- const p=binance.last||(binance.bid+binance.ask)/2;
+ const p=
+  binance.last||
+  (binance.bid+binance.ask)/2;
 
  if(
   !p||
   !binance.bids.length||
   !binance.asks.length
- )
+ ){
+
   return{
    imb:0,
    support:0,
@@ -556,39 +1061,57 @@ function depthLiquidity(){
    zone:'UNKNOWN',
    nearest:0
   };
+ }
 
  const band=p*.0008;
 
- let bidQ=0,
-     askQ=0,
-     support=0,
-     resistance=0;
+ let bidQ=0;
+ let askQ=0;
+ let support=0;
+ let resistance=0;
 
  for(const z of binance.bids){
 
-  if(Math.abs(z.p-p)<=band){
+  if(
+   Math.abs(z.p-p)<=band
+  ){
+
    bidQ+=z.q;
+
    support=Math.max(
     support,
-    z.q*(1-Math.abs(z.p-p)/band)
+    z.q*
+    (
+     1-
+     Math.abs(z.p-p)/band
+    )
    );
   }
  }
 
  for(const z of binance.asks){
 
-  if(Math.abs(z.p-p)<=band){
+  if(
+   Math.abs(z.p-p)<=band
+  ){
+
    askQ+=z.q;
+
    resistance=Math.max(
     resistance,
-    z.q*(1-Math.abs(z.p-p)/band)
+    z.q*
+    (
+     1-
+     Math.abs(z.p-p)/band
+    )
    );
   }
  }
 
- const imb=(bidQ+askQ)
-  ?(bidQ-askQ)/(bidQ+askQ)
-  :0;
+ const imb=
+  (bidQ+askQ)
+   ?(bidQ-askQ)/(bidQ+askQ)
+   :0;
 
  const zone=
   imb>.18
@@ -604,33 +1127,54 @@ function depthLiquidity(){
   zone,
   nearest:
    Math.min(
-    Math.abs((binance.bids[0]?.p||p)-p),
-    Math.abs((binance.asks[0]?.p||p)-p)
+    Math.abs(
+     (binance.bids[0]?.p||p)-p
+    ),
+    Math.abs(
+     (binance.asks[0]?.p||p)-p
+    )
    )/p
  };
 }
+
 
 function bookStats(b){
 
  const bid=b?.bids?.[0];
  const ask=b?.asks?.[0];
 
- const bidQ=(b?.bids||[])
-  .slice(0,5)
-  .reduce((a,z)=>a+z.size,0);
+ const bidQ=
+  (b?.bids||[])
+   .slice(0,5)
+   .reduce(
+    (a,z)=>a+z.size,
+    0
+   );
 
- const askQ=(b?.asks||[])
-  .slice(0,5)
-  .reduce((a,z)=>a+z.size,0);
+ const askQ=
+  (b?.asks||[])
+   .slice(0,5)
+   .reduce(
+    (a,z)=>a+z.size,
+    0
+   );
 
- const imb=(bidQ+askQ)
-  ?(bidQ-askQ)/(bidQ+askQ)
-  :0;
+ const imb=
+  (bidQ+askQ)
+   ?(bidQ-askQ)/(bidQ+askQ)
+   :0;
 
  const micro=
-  bid&&ask&&(bid.size+ask.size)>0
-   ?((ask.price*bid.size)+(bid.price*ask.size))/(bid.size+ask.size)
-   :(bid?.price||ask?.price||0);
+  bid&&ask&&
+  (bid.size+ask.size)>0
+   ?(
+    (ask.price*bid.size)+
+    (bid.price*ask.size)
+   )/
+   (bid.size+ask.size)
+   :(bid?.price||
+     ask?.price||
+     0);
 
  const spread=
   bid&&ask
@@ -650,7 +1194,11 @@ function bookStats(b){
  };
 }
 
-function polyBookPressure(upB,downB){
+
+function polyBookPressure(
+ upB,
+ downB
+){
 
  const u=bookStats(upB);
  const d=bookStats(downB);
@@ -662,12 +1210,19 @@ function polyBookPressure(upB,downB){
  );
 }
 
+
 function calculate(){
 
  const now=Date.now();
- const p=binance.last||(binance.bid+binance.ask)/2;
 
- if(!p||now-binance.ts>2500){
+ const p=
+  binance.last||
+  (binance.bid+binance.ask)/2;
+
+ if(
+  !p||
+  now-binance.ts>2500
+ ){
 
   return{
    status:'warming',
@@ -685,40 +1240,61 @@ function calculate(){
  const p3=sample(3000);
  const p5=sample(5000);
 
- const r1=p1?p/p1-1:0;
- const r3=p3?p/p3-1:0;
- const r5=p5?p/p5-1:0;
+ const r1=
+  p1?p/p1-1:0;
 
- const depth=depthLiquidity();
+ const r3=
+  p3?p/p3-1:0;
 
- const totalBook=binance.bidSize+binance.askSize;
+ const r5=
+  p5?p/p5-1:0;
 
- const bookImb=totalBook
-  ?(binance.bidSize-binance.askSize)/totalBook
-  :0;
+ const depth=
+  depthLiquidity();
 
- const nowTrades=trades.filter(
-  t=>now-t.ts<=5000
- );
+ const totalBook=
+  binance.bidSize+
+  binance.askSize;
 
- const recentFlow=nowTrades.reduce(
-  (a,t)=>a+t.flow,
-  0
- );
+ const bookImb=
+  totalBook
+   ?(
+    binance.bidSize-
+    binance.askSize
+   )/totalBook
+   :0;
 
- const flowNorm=clamp(
-  recentFlow/Math.max(1,totalBook*2.5),
-  -1,
-  1
- );
+ const nowTrades=
+  trades.filter(
+   t=>now-t.ts<=5000
+  );
 
- const upB=market
-  ?books.get(market.upToken)
-  :null;
+ const recentFlow=
+  nowTrades.reduce(
+   (a,t)=>a+t.flow,
+   0
+  );
 
- const downB=market
-  ?books.get(market.downToken)
-  :null;
+ const flowNorm=
+  clamp(
+   recentFlow/
+   Math.max(
+    1,
+    totalBook*2.5
+   ),
+   -1,
+   1
+  );
+
+ const upB=
+  market
+   ?books.get(market.upToken)
+   :null;
+
+ const downB=
+  market
+   ?books.get(market.downToken)
+   :null;
 
  const U=bookStats(upB);
  const D=bookStats(downB);
@@ -734,56 +1310,79 @@ function calculate(){
    :D.bid||D.ask||0;
 
  const marketImplied=
-  (upMid&&downMid)
+  upMid&&downMid
    ?clamp(
-     (upMid+(1-downMid))/2,
-     .01,
-     .99
-    )
+    (
+     upMid+
+     (1-downMid)
+    )/2,
+    .01,
+    .99
+   )
    :(upMid||.5);
 
  const polyPressure=
-  (upMid&&downMid)
+  upMid&&downMid
    ?clamp(
-     (upMid-(1-downMid))*.9,
-     -.35,
-     .35
-    )
+    (
+     upMid-
+     (1-downMid)
+    )*.9,
+    -.35,
+    .35
+   )
    :0;
 
- const polyBook=polyBookPressure(upB,downB);
+ const polyBook=
+  polyBookPressure(
+   upB,
+   downB
+  );
 
- const polyBidPressure=clamp(
-  (U.imb-D.imb)*.55,
-  -1,
-  1
- );
+ const polyBidPressure=
+  clamp(
+   (U.imb-D.imb)*.55,
+   -1,
+   1
+  );
 
  const polyMicroProb=
   U.micro&&D.micro
    ?clamp(
-     (U.micro+(1-D.micro))/2,
-     .01,
-     .99
-    )
+    (
+     U.micro+
+     (1-D.micro)
+    )/2,
+    .01,
+    .99
+   )
    :marketImplied;
 
- const polyMicroDrift=clamp(
-  polyMicroProb-marketImplied,
-  -.25,
-  .25
- );
+ const polyMicroDrift=
+  clamp(
+   polyMicroProb-marketImplied,
+   -.25,
+   .25
+  );
 
  const polySpread=
-  (U.spread&&D.spread)
-   ?(U.spread+D.spread)/2
+  U.spread&&D.spread
+   ?(
+    U.spread+D.spread
+   )/2
    :.05;
 
- const polyLiquidity=clamp(
-  (U.bidQ+U.askQ+D.bidQ+D.askQ)/100,
-  0,
-  1
- );
+ const polyLiquidity=
+  clamp(
+   (
+    U.bidQ+
+    U.askQ+
+    D.bidQ+
+    D.askQ
+   )/100,
+   0,
+   1
+  );
 
  polyHist.push({
   ts:now,
@@ -793,196 +1392,278 @@ function calculate(){
  while(polyHist.length>2000)
   polyHist.shift();
 
- const polyPrev=polyHist.find(
-  z=>now-z.ts>=1000
- );
+ const polyPrev=
+  polyHist.find(
+   z=>now-z.ts>=1000
+  );
 
- const polyR1=polyPrev
-  ?polyMicroProb-polyPrev.p
-  :0;
+ const polyR1=
+  polyPrev
+   ?polyMicroProb-polyPrev.p
+   :0;
 
- const recentPrices=hist
-  .filter(z=>now-z.ts<=5000)
-  .map(z=>z.p);
+ const recentPrices=
+  hist
+   .filter(
+    z=>now-z.ts<=5000
+   )
+   .map(z=>z.p);
 
- const slope=regressionSlope(recentPrices);
+ const slope=
+  regressionSlope(
+   recentPrices
+  );
 
- const slopeNorm=clamp(
-  slope/Math.max(.01,p*.00002),
-  -1,
-  1
- );
+ const slopeNorm=
+  clamp(
+   slope/
+   Math.max(
+    .01,
+    p*.00002
+   ),
+   -1,
+   1
+  );
 
- const prices1m=hist
-  .filter(z=>now-z.ts<=60000)
-  .map(z=>z.p);
+ const prices1m=
+  hist
+   .filter(
+    z=>now-z.ts<=60000
+   )
+   .map(z=>z.p);
 
  const ema=(arr,alpha)=>{
-  if(!arr.length)return p;
+
+  if(!arr.length)
+   return p;
 
   let e=arr[0];
 
-  for(const v of arr.slice(1))
-   e=alpha*v+(1-alpha)*e;
+  for(
+   const v of arr.slice(1)
+  )
+   e=
+    alpha*v+
+    (1-alpha)*e;
 
   return e;
  };
 
- const emaFast=ema(prices1m,.22);
- const emaSlow=ema(prices1m,.055);
+ const emaFast=
+  ema(prices1m,.22);
 
- const trendNorm=clamp(
-  (emaFast-emaSlow)/Math.max(.01,p*.0007),
-  -1,
-  1
- );
+ const emaSlow=
+  ema(prices1m,.055);
 
- const deltas=prices1m
-  .slice(1)
-  .map((v,i)=>v/prices1m[i]-1)
-  .filter(Number.isFinite);
+ const trendNorm=
+  clamp(
+   (
+    emaFast-emaSlow
+   )/
+   Math.max(
+    .01,
+    p*.0007
+   ),
+   -1,
+   1
+  );
 
- let gains=0,losses=0;
+ const deltas=
+  prices1m
+   .slice(1)
+   .map(
+    (v,i)=>
+     v/prices1m[i]-1
+   )
+   .filter(Number.isFinite);
 
- for(const d of deltas.slice(-30)){
-  if(d>0)gains+=d;
-  else losses-=d;
+ let gains=0;
+ let losses=0;
+
+ for(
+  const d of deltas.slice(-30)
+ ){
+
+  if(d>0)
+   gains+=d;
+  else
+   losses-=d;
  }
 
  const rsi=
   50+
   (
    gains+losses
-    ?50*(gains-losses)/(gains+losses)
+    ?50*(gains-losses)/
+     (gains+losses)
     :0
   );
 
- const rsiNorm=clamp(
-  (rsi-50)/20,
-  -1,
-  1
- );
+ const rsiNorm=
+  clamp(
+   (rsi-50)/20,
+   -1,
+   1
+  );
 
- const rets=hist
-  .slice(-240)
-  .map((z,i,a)=>
-   i
-    ?z.p/a[i-1].p-1
-    :0
-  )
-  .filter(Boolean);
+ const rets=
+  hist
+   .slice(-240)
+   .map(
+    (z,i,a)=>
+     i
+      ?z.p/a[i-1].p-1
+      :0
+   )
+   .filter(Boolean);
 
- const volatility=Math.sqrt(
-  rets.reduce((a,b)=>a+b*b,0)/
-  Math.max(1,rets.length)
- );
+ const volatility=
+  Math.sqrt(
+   rets.reduce(
+    (a,b)=>a+b*b,
+    0
+   )/
+   Math.max(
+    1,
+    rets.length
+   )
+  );
 
- const volRegime=clamp(
-  volatility/.00035,
-  0,
-  3
- );
+ const volRegime=
+  clamp(
+   volatility/.00035,
+   0,
+   3
+  );
 
  const volPenalty=
   volRegime>1.8
    ?clamp(
-     (volRegime-1.8)*.08,
-     0,
-     .18
-    )
+    (volRegime-1.8)*.08,
+    0,
+    .18
+   )
    :0;
 
- const momentum=clamp(
-  r1*1150+
-  r3*380+
-  r5*170+
-  slopeNorm*.08,
-  -.5,
-  .5
- );
+ const momentum=
+  clamp(
+   r1*1150+
+   r3*380+
+   r5*170+
+   slopeNorm*.08,
+   -.5,
+   .5
+  );
 
- const orderFlow=clamp(
-  bookImb*.16+
-  flowNorm*.18+
-  depth.imb*.08,
-  -.38,
-  .38
- );
+ const orderFlow=
+  clamp(
+   bookImb*.16+
+   flowNorm*.18+
+   depth.imb*.08,
+   -.38,
+   .38
+  );
 
- const trend=clamp(
-  trendNorm*.09+
-  rsiNorm*.045,
-  -.14,
-  .14
- );
+ const trend=
+  clamp(
+   trendNorm*.09+
+   rsiNorm*.045,
+   -.14,
+   .14
+  );
 
- const poly=clamp(
-  polyPressure*.16+
-  polyBook*.08+
-  polyBidPressure*.07+
-  polyR1*1.8+
-  polyMicroDrift*.20,
-  -.16,
-  .16
- );
+ const poly=
+  clamp(
+   polyPressure*.16+
+   polyBook*.08+
+   polyBidPressure*.07+
+   polyR1*1.8+
+   polyMicroDrift*.20,
+   -.16,
+   .16
+  );
 
- const liquidityZone=depth.zone;
+ const liquidityZone=
+  depth.zone;
 
- const liquidityBias=clamp(
-  depth.imb*.10,
-  -.10,
-  .10
- );
+ const liquidityBias=
+  clamp(
+   depth.imb*.10,
+   -.10,
+   .10
+  );
 
- const technicalScore=clamp(
-  momentum+
-  orderFlow+
-  trend+
-  liquidityBias,
-  -.85,
-  .85
- );
+ const technicalScore=
+  clamp(
+   momentum+
+   orderFlow+
+   trend+
+   liquidityBias,
+   -.85,
+   .85
+  );
 
  const technicalProb=
-  1/(1+Math.exp(-technicalScore*4.6));
+  1/
+  (
+   1+
+   Math.exp(
+    -technicalScore*4.6
+   )
+  );
 
- const marketDriftProb=clamp(
-  .5+
-  polyR1*2.8+
-  polyMicroDrift*.8,
-  .35,
-  .85
- );
+ const marketDriftProb=
+  clamp(
+   .5+
+   polyR1*2.8+
+   polyMicroDrift*.8,
+   .35,
+   .85
+  );
 
- const bidAskProb=clamp(
-  .5+
-  polyBidPressure*.16+
-  polyBook*.10,
-  .01,
-  .99
- );
+ const bidAskProb=
+  clamp(
+   .5+
+   polyBidPressure*.16+
+   polyBook*.10,
+   .01,
+   .99
+  );
 
  let blended=
   technicalProb*.48+
   marketImplied*.16+
   marketDriftProb*.10+
   bidAskProb*.11+
-  (technicalProb+poly*.8)*.15;
+  (
+   technicalProb+
+   poly*.8
+  )*.15;
 
- blended=.5+
+ blended=
+  .5+
   (blended-.5)*
   (
    1-
    volPenalty-
-   clamp(polySpread/.08,0,1)*.05
+   clamp(
+    polySpread/.08,
+    0,
+    1
+   )*.05
   );
 
  const rawUpProbability=
-  clamp(blended,.01,.99);
+  clamp(
+   blended,
+   .01,
+   .99
+  );
 
- const up=calibratedProbability(
-  rawUpProbability
- );
+ const up=
+  calibratedProbability(
+   rawUpProbability
+  );
 
  const down=1-up;
 
@@ -1018,33 +1699,52 @@ function calculate(){
    ?down-D.bid
    :0;
 
- const edge=Math.max(
-  upEdge,
-  downEdge
- );
+ const edge=
+  Math.max(
+   upEdge,
+   downEdge
+  );
 
- const bestBidExit=Math.max(
-  upBidEdge,
-  downBidEdge
- );
+ const bestBidExit=
+  Math.max(
+   upBidEdge,
+   downBidEdge
+  );
 
- const potential=clamp(
-  (up-.5)*1.8,
-  -.85,
-  .85
- );
+ const potential=
+  clamp(
+   (up-.5)*1.8,
+   -.85,
+   .85
+  );
 
  const alignment=
-  (Math.sign(momentum)===Math.sign(orderFlow)?1:0)+
-  (Math.sign(momentum)===Math.sign(trend)?1:0)+
-  (Math.sign(momentum)===Math.sign(poly)?1:0)+
-  (Math.sign(momentum)===Math.sign(depth.imb)?1:0);
+  (
+   Math.sign(momentum)===
+   Math.sign(orderFlow)
+   ?1:0
+  )+
+  (
+   Math.sign(momentum)===
+   Math.sign(trend)
+   ?1:0
+  )+
+  (
+   Math.sign(momentum)===
+   Math.sign(poly)
+   ?1:0
+  )+
+  (
+   Math.sign(momentum)===
+   Math.sign(depth.imb)
+   ?1:0
+  );
 
  const setupScore=
-  (Math.abs(technicalScore)*100)+
-  (Math.max(0,edge)*220)+
-  (Math.abs(polyR1)*100)+
-  (Math.abs(depth.imb)*8)+
+  Math.abs(technicalScore)*100+
+  Math.max(0,edge)*220+
+  Math.abs(polyR1)*100+
+  Math.abs(depth.imb)*8+
   Math.abs(polyBidPressure)*12;
 
  return{
@@ -1052,15 +1752,23 @@ function calculate(){
   return1s:r1,
   return3s:r3,
   return5s:r5,
+
   upProbability:up,
   downProbability:down,
+
   rawUpProbability,
-  rawDownProbability:1-rawUpProbability,
+  rawDownProbability:
+   1-rawUpProbability,
+
   marketImplied,
   polyR1,
+
   signal,
   confidence,
-  score:technicalScore*100,
+
+  score:
+   technicalScore*100,
+
   volatility,
   volRegime,
 
@@ -1093,14 +1801,20 @@ function calculate(){
 
   upBook:upB,
   downBook:downB,
+
   upStats:U,
   downStats:D,
+
   potential,
+
   upEdge,
   downEdge,
+
   upBidEdge,
   downBidEdge,
+
   bestBidExit,
+
   edge,
   setupScore
  };
@@ -1111,7 +1825,9 @@ function calculate(){
    STABLE SIGNAL
    ========================================================= */
 
-let candidateSince=0,lastCandidateKey='';
+let candidateSince=0;
+let lastCandidateKey='';
+
 
 function stableSignal(x){
 
@@ -1119,7 +1835,8 @@ function stableSignal(x){
 
  const secs=
   market
-   ?market.endTs-now/1000
+   ?market.endTs-
+    now/1000
    :0;
 
  const cfg=
@@ -1148,22 +1865,27 @@ function stableSignal(x){
    ?x.upEdge
    :x.downEdge;
 
- const m=Math.abs(
-  x.components?.momentum||0
- );
+ const m=
+  Math.abs(
+   x.components?.momentum||0
+  );
 
- const f=Math.abs(
-  x.components?.orderFlow||0
- );
+ const f=
+  Math.abs(
+   x.components?.orderFlow||0
+  );
 
- const pp=Math.abs(
-  x.components?.polymarketPressure||0
- );
+ const pp=
+  Math.abs(
+   x.components?.polymarketPressure||0
+  );
 
- const a=x.components?.alignment||0;
+ const a=
+  x.components?.alignment||0;
 
  let stage='WATCH';
- let reason='Waiting for aligned factors';
+ let reason=
+  'Waiting for aligned factors';
 
  const key=
   `${side}|${market?.slug||''}`;
@@ -1184,12 +1906,15 @@ function stableSignal(x){
   v=>Math.sign(v)===directional
  );
 
- const agree=factors.filter(Boolean).length;
+ const agree=
+  factors.filter(Boolean).length;
 
  const bidConfirm=
   side==='UP'
-   ?x.upStats?.bid>x.downStats?.ask*.95
-   :x.downStats?.bid>x.upStats?.ask*.95;
+   ?x.upStats?.bid>
+    x.downStats?.ask*.95
+   :x.downStats?.bid>
+    x.upStats?.ask*.95;
 
  const quality=
   agree>=5&&
@@ -1209,78 +1934,106 @@ function stableSignal(x){
   edge>=mode.minEdge*.55&&
   x.confidence>=mode.minConf-7&&
   m>=mode.minMomentum*.6&&
-  x.volRegime<mode.maxVol+.35;
+  x.volRegime<
+   mode.maxVol+.35;
 
  if(x.status==='warming'){
 
   stage='WAIT';
-  reason='Waiting for fresh Binance data';
+
+  reason=
+   'Waiting for fresh Binance data';
 
  }else if(secs<=60){
 
   stage='WAIT';
-  reason='Last minute protection — no new sniper entry';
+
+  reason=
+   'Last minute protection — no new sniper entry';
 
  }else if(now-binance.ts>1200){
 
   stage='WAIT';
-  reason='Binance feed stale';
+
+  reason=
+   'Binance feed stale';
 
  }else if(!ask){
 
   stage='WATCH';
-  reason='Polymarket executable ask unavailable';
+
+  reason=
+   'Polymarket executable ask unavailable';
 
  }else if(quality){
 
   if(lastCandidateKey!==key){
+
    candidateSince=now;
    lastCandidateKey=key;
   }
 
-  if(now-candidateSince>=mode.persist){
+  if(
+   now-candidateSince>=
+   mode.persist
+  ){
 
    stage='ENTRY';
+
    reason=
     `${selectedMode.toUpperCase()} mode: ${agree}/6 factors + bid confirmation`;
 
   }else{
 
    stage='SETUP';
+
    reason=
     `Confirming setup ${Math.max(
-      0,
-      mode.persist-(now-candidateSince)
+     0,
+     mode.persist-
+     (now-candidateSince)
     )}ms`;
   }
 
  }else if(setup){
 
   stage='SETUP';
+
   reason=
    `Setup forming: ${agree}/6 factors aligned`;
 
  }else{
 
   stage='WATCH';
+
   reason=
    `Filtered: ${agree}/6 factors aligned`;
  }
 
  const marketKey=
   market?.slug||
-  String(market?.endTs||'');
+  String(
+   market?.endTs||''
+  );
 
  const already=
   storedEntries.some(
-   e=>e.stage==='ENTRY'&&e.marketKey===marketKey
+   e=>
+    e.stage==='ENTRY'&&
+    e.marketKey===marketKey
   );
 
  const lastEntry=
   storedEntries
-   .filter(e=>e.stage==='ENTRY')
+   .filter(
+    e=>e.stage==='ENTRY'
+   )
    .reduce(
-    (a,e)=>Math.max(a,e.generatedAt||0),
+    (a,e)=>
+     Math.max(
+      a,
+      e.generatedAt||0
+     ),
     0
    );
 
@@ -1288,7 +2041,8 @@ function stableSignal(x){
   stage==='ENTRY'&&
   (
    already||
-   now-lastEntry<mode.cooldown
+   now-lastEntry<
+   mode.cooldown
   )
  ){
 
@@ -1303,9 +2057,12 @@ function stableSignal(x){
  const valid=
   stage==='ENTRY'
    ?Math.min(
-     now+8000,
-     (market?.endTs||now/1000)*1000-65000
-    )
+    now+8000,
+    (
+     market?.endTs||
+     now/1000
+    )*1000-65000
+   )
    :now+2500;
 
  const lockedAsk=
@@ -1315,8 +2072,12 @@ function stableSignal(x){
 
  const newSignal={
   stage,
-  side:stage==='WAIT'?'WAIT':side,
-  confidence:x.confidence||50,
+  side:
+   stage==='WAIT'
+    ?'WAIT'
+    :side,
+  confidence:
+   x.confidence||50,
   generatedAt:now,
   validUntil:valid,
   potential:x.potential||0,
@@ -1324,7 +2085,9 @@ function stableSignal(x){
   reason,
   lockedAsk,
   mode:selectedMode,
-  liquidityZone:x.components?.liquidityZone||'UNKNOWN'
+  liquidityZone:
+   x.components?.liquidityZone||
+   'UNKNOWN'
  };
 
  const changed=
@@ -1343,7 +2106,8 @@ function stableSignal(x){
 
    const h={
     ...newSignal,
-    marketEnd:market?.endTs*1000||0,
+    marketEnd:
+     market?.endTs*1000||0,
     ask,
     upProb:x.upProbability,
     downProb:x.downProbability,
@@ -1351,9 +2115,13 @@ function stableSignal(x){
     slug:market?.slug||''
    };
 
-   if(entryKey(h)!==loggedEntryId){
+   if(
+    entryKey(h)!==
+    loggedEntryId
+   ){
 
-    loggedEntryId=entryKey(h);
+    loggedEntryId=
+     entryKey(h);
 
     persistEntry(h);
    }
@@ -1378,12 +2146,353 @@ function stableSignal(x){
 
 
 /* =========================================================
+   PRICE COMPARISON
+   ========================================================= */
+
+function comparisonSnapshot(){
+
+ const now=Date.now();
+
+ const spot=
+  binance.bid&&binance.ask
+   ?(
+    binance.bid+
+    binance.ask
+   )/2
+   :binance.last||0;
+
+ const upBook=
+  market
+   ?books.get(market.upToken)
+   :null;
+
+ const downBook=
+  market
+   ?books.get(market.downToken)
+   :null;
+
+ const upStats=
+  bookStats(upBook);
+
+ const downStats=
+  bookStats(downBook);
+
+ const up=
+  upStats.ask||
+  upStats.bid||
+  0;
+
+ const down=
+  downStats.ask||
+  downStats.bid||
+  0;
+
+ if(!spot&&!up&&!down)
+  return;
+
+ comparisonHist.push({
+  ts:now,
+  spot,
+  up,
+  down
+ });
+
+ while(
+  comparisonHist.length>3600
+ )
+  comparisonHist.shift();
+}
+
+
+function comparisonChange(
+ key,
+ ms
+){
+
+ const now=Date.now();
+
+ const cur=
+  comparisonHist[
+   comparisonHist.length-1
+  ];
+
+ if(
+  !cur||
+  !cur[key]
+ )
+  return 0;
+
+ let old=null;
+
+ for(
+  let i=
+   comparisonHist.length-1;
+  i>=0;
+  i--
+ ){
+
+  if(
+   now-
+   comparisonHist[i].ts>=ms
+  ){
+
+   old=
+    comparisonHist[i];
+
+   break;
+  }
+ }
+
+ if(
+  !old||
+  !old[key]
+ )
+  return 0;
+
+ return(
+  cur[key]/
+  old[key]
+ )-1;
+}
+
+
+function renderComparison(
+ ua,
+ da
+){
+
+ if(!$('compareBinancePrice'))
+  return;
+
+ const now=Date.now();
+
+ const spot=
+  binance.bid&&binance.ask
+   ?(
+    binance.bid+
+    binance.ask
+   )/2
+   :binance.last||0;
+
+ const up=
+  ua?.ask||
+  ua?.bid||
+  0;
+
+ const down=
+  da?.ask||
+  da?.bid||
+  0;
+
+ $('compareBinancePrice')
+  .textContent=
+   spot
+    ?spot.toFixed(2)
+    :'—';
+
+ $('compareUpPrice')
+  .textContent=
+   up
+    ?cents(up)
+    :'—';
+
+ $('compareDownPrice')
+  .textContent=
+   down
+    ?cents(down)
+    :'—';
+
+ const set=(id,v)=>{
+
+  const el=$(id);
+
+  if(!el)return;
+
+  el.textContent=
+   fmtPct(v);
+
+  el.style.color=
+   v>0
+    ?'var(--up)'
+    :v<0
+     ?'var(--down)'
+     :'var(--muted)';
+ };
+
+ set(
+  'compareBinance1s',
+  comparisonChange(
+   'spot',
+   1000
+  )
+ );
+
+ set(
+  'compareUp1s',
+  comparisonChange(
+   'up',
+   1000
+  )
+ );
+
+ set(
+  'compareDown1s',
+  comparisonChange(
+   'down',
+   1000
+  )
+ );
+
+ set(
+  'compareBinance5s',
+  comparisonChange(
+   'spot',
+   5000
+  )
+ );
+
+ set(
+  'compareUp5s',
+  comparisonChange(
+   'up',
+   5000
+  )
+ );
+
+ set(
+  'compareDown5s',
+  comparisonChange(
+   'down',
+   5000
+  )
+ );
+
+ set(
+  'compareBinance15s',
+  comparisonChange(
+   'spot',
+   15000
+  )
+ );
+
+ set(
+  'compareUp15s',
+  comparisonChange(
+   'up',
+   15000
+  )
+ );
+
+ set(
+  'compareDown15s',
+  comparisonChange(
+   'down',
+   15000
+  )
+ );
+
+ const spot5=
+  comparisonChange(
+   'spot',
+   5000
+  );
+
+ const u5=
+  comparisonChange(
+   'up',
+   5000
+  );
+
+ const d5=
+  comparisonChange(
+   'down',
+   5000
+  );
+
+ set(
+  'compareSpotUpMove',
+  u5-spot5
+ );
+
+ set(
+  'compareSpotDownMove',
+  d5-spot5
+ );
+
+ if(up&&down){
+
+  const combined=
+   up+down;
+
+  $('compareCombined')
+   .textContent=
+    (
+     combined*100
+    ).toFixed(2)+'¢';
+
+  $('compareCombined')
+   .style.color=
+    Math.abs(
+     combined-1
+    )<.02
+     ?'var(--up)'
+     :'var(--gold)';
+
+ }else{
+
+  $('compareCombined')
+   .textContent='—';
+ }
+
+ if(market){
+
+  $('compareMarketTime')
+   .textContent=
+    Math.max(
+     0,
+     Math.ceil(
+      market.endTs-
+      now/1000
+     )
+    )+'s';
+
+ }else{
+
+  $('compareMarketTime')
+   .textContent='—';
+ }
+
+ const age=
+  binance.ts
+   ?now-binance.ts
+   :99999;
+
+ if($('comparisonFeed')){
+
+  $('comparisonFeed')
+   .textContent=
+    age<2500
+     ?'LIVE'
+     :'STALE';
+
+  $('comparisonFeed')
+   .style.color=
+    age<2500
+     ?'var(--up)'
+     :'var(--down)';
+ }
+}
+
+
+/* =========================================================
    DISPLAY
    ========================================================= */
 
 function fmtTime(ms){
+
  return ms
-  ?new Date(ms).toLocaleTimeString(
+  ?new Date(ms)
+   .toLocaleTimeString(
     [],
     {
      hour:'2-digit',
@@ -1394,19 +2503,30 @@ function fmtTime(ms){
   :'—';
 }
 
+
 function expiryText(){
 
- if(!market)return'EXP —';
+ if(!market)
+  return'EXP —';
 
- const s=Math.max(
-  0,
-  Math.ceil(
-   market.endTs-Date.now()/1000
-  )
- );
+ const s=
+  Math.max(
+   0,
+   Math.ceil(
+    market.endTs-
+    Date.now()/1000
+   )
+  );
 
- return `5M EXP ${s}s • ${fmtTime(market.endTs*1000)}`;
+ return `5M EXP ${s}s • ${fmtTime(
+  market.endTs*1000
+ )}`;
 }
+
+
+/* =========================================================
+   MAIN RENDER
+   ========================================================= */
 
 function render(){
 
@@ -1421,285 +2541,399 @@ function render(){
 
  const now=Date.now();
 
+ comparisonSnapshot();
+ renderComparison(ua,da);
+
  const secs=
   market
    ?Math.max(
-     0,
-     Math.ceil(
-      market.endTs-now/1000
-     )
+    0,
+    Math.ceil(
+     market.endTs-
+     now/1000
     )
+   )
    :0;
 
  if(market){
 
-  $('marketTitle').textContent=
-   market.question||market.slug;
+  if($('marketTitle'))
+   $('marketTitle').textContent=
+    market.question||
+    market.slug;
 
-  $('openMarket').href=
-   `https://polymarket.com/event/${encodeURIComponent(
-    market.slug||''
-   )}`;
+  if($('openMarket'))
+   $('openMarket').href=
+    `https://polymarket.com/event/${encodeURIComponent(
+     market.slug||''
+    )}`;
 
-  $('timeLeft').textContent=
-   secs+'s';
+  if($('timeLeft'))
+   $('timeLeft').textContent=
+    secs+'s';
 
-  $('expiryTime').textContent=
-   fmtTime(market.endTs*1000);
+  if($('expiryTime'))
+   $('expiryTime').textContent=
+    fmtTime(
+     market.endTs*1000
+    );
 
-  $('expiryTime').classList.toggle(
-   'expiry-last',
-   secs<=60
-  );
+  if($('expiryTime'))
+   $('expiryTime').classList.toggle(
+    'expiry-last',
+    secs<=60
+   );
 
   document
-   .querySelectorAll('.expiryBadge')
+   .querySelectorAll(
+    '.expiryBadge'
+   )
    .forEach(e=>{
-    e.textContent=expiryText();
+
+    e.textContent=
+     expiryText();
+
     e.classList.toggle(
      'expiry-last',
      secs<=60
     );
    });
 
-  $('timeLeft')
-   .parentElement
-   .classList.toggle(
-    'expiry-last',
-    secs<=60
-   );
+  if(
+   $('timeLeft')&&
+   $('timeLeft').parentElement
+  ){
+
+   $('timeLeft')
+    .parentElement
+    .classList.toggle(
+     'expiry-last',
+     secs<=60
+    );
+  }
 
   if($('expiryEntry2'))
-   $('expiryEntry2').classList.toggle(
-    'expiry-last',
-    secs<=60
-   );
+   $('expiryEntry2')
+    .classList.toggle(
+     'expiry-last',
+     secs<=60
+    );
 
   if($('entryTimeframe'))
-   $('entryTimeframe').classList.toggle(
-    'expiry-last',
-    secs<=60
-   );
+   $('entryTimeframe')
+    .classList.toggle(
+     'expiry-last',
+     secs<=60
+    );
  }
 
- $('spotPrice').textContent=
-  (binance.bid&&binance.ask)
-   ?((binance.bid+binance.ask)/2).toFixed(2)
-   :(x.price?x.price.toFixed(2):'—');
+ const spot=
+  binance.bid&&binance.ask
+   ?(
+    binance.bid+
+    binance.ask
+   )/2
+   :x.price||0;
 
- $('detailBid').textContent=
-  binance.bid
-   ?binance.bid.toFixed(2)
-   :'—';
+ if($('spotPrice'))
+  $('spotPrice').textContent=
+   spot
+    ?spot.toFixed(2)
+    :'—';
 
- $('detailAsk').textContent=
-  binance.ask
-   ?binance.ask.toFixed(2)
-   :'—';
+ if($('detailBid'))
+  $('detailBid').textContent=
+   binance.bid
+    ?binance.bid.toFixed(2)
+    :'—';
 
- $('detailDepth').textContent=
-  `${binance.bids.length}/${binance.asks.length}`;
+ if($('detailAsk'))
+  $('detailAsk').textContent=
+   binance.ask
+    ?binance.ask.toFixed(2)
+    :'—';
 
- $('detailFeed').textContent=
-  binance.ts
-   ?Math.max(0,now-binance.ts)+'ms'
-   :'—';
+ if($('detailDepth'))
+  $('detailDepth').textContent=
+   `${binance.bids.length}/${binance.asks.length}`;
 
- $('lastPrice').textContent=
-  binance.last
-   ?binance.last.toFixed(2)
-   :'—';
+ if($('detailFeed'))
+  $('detailFeed').textContent=
+   binance.ts
+    ?Math.max(
+     0,
+     now-binance.ts
+    )+'ms'
+    :'—';
 
- $('spotSignal').textContent=
-  x.signal||'WAIT';
+ if($('lastPrice'))
+  $('lastPrice').textContent=
+   binance.last
+    ?binance.last.toFixed(2)
+    :'—';
 
- $('binanceBid').textContent=
-  binance.bid
-   ?binance.bid.toFixed(2)
-   :'—';
+ if($('spotSignal'))
+  $('spotSignal').textContent=
+   x.signal||'WAIT';
 
- $('binanceAsk').textContent=
-  binance.ask
-   ?binance.ask.toFixed(2)
-   :'—';
+ if($('binanceBid'))
+  $('binanceBid').textContent=
+   binance.bid
+    ?binance.bid.toFixed(2)
+    :'—';
 
- $('binanceFeed').textContent=
-  binance.ts
-   ?`${Math.max(0,now-binance.ts)}ms`
-   :'—';
+ if($('binanceAsk'))
+  $('binanceAsk').textContent=
+   binance.ask
+    ?binance.ask.toFixed(2)
+    :'—';
 
- $('upAsk').textContent=
-  ua?.ask
-   ?cents(ua.ask)
-   :'—';
+ if($('binanceFeed'))
+  $('binanceFeed').textContent=
+   binance.ts
+    ?`${Math.max(
+      0,
+      now-binance.ts
+     )}ms`
+    :'—';
 
- $('downAsk').textContent=
-  da?.ask
-   ?cents(da.ask)
-   :'—';
+ if($('upAsk'))
+  $('upAsk').textContent=
+   ua?.ask
+    ?cents(ua.ask)
+    :'—';
 
- $('upBid').textContent=
-  ua?.bid
-   ?cents(ua.bid)
-   :'—';
+ if($('downAsk'))
+  $('downAsk').textContent=
+   da?.ask
+    ?cents(da.ask)
+    :'—';
 
- $('downBid').textContent=
-  da?.bid
-   ?cents(da.bid)
-   :'—';
+ if($('upBid'))
+  $('upBid').textContent=
+   ua?.bid
+    ?cents(ua.bid)
+    :'—';
 
- $('upSize').textContent=
-  ua?.askSize
-   ?`${ua.askSize.toFixed(2)} ask shares`
-   :'—';
+ if($('downBid'))
+  $('downBid').textContent=
+   da?.bid
+    ?cents(da.bid)
+    :'—';
 
- $('downSize').textContent=
-  da?.askSize
-   ?`${da.askSize.toFixed(2)} ask shares`
-   :'—';
+ if($('upSize'))
+  $('upSize').textContent=
+   ua?.askSize
+    ?`${ua.askSize.toFixed(2)} ask shares`
+    :'—';
+
+ if($('downSize'))
+  $('downSize').textContent=
+   da?.askSize
+    ?`${da.askSize.toFixed(2)} ask shares`
+    :'—';
 
  const ages=[
   upB?.ts,
   downB?.ts
  ].filter(Boolean);
 
- $('bookAge').textContent=
-  ages.length
-   ?Math.max(
+ if($('bookAge'))
+  $('bookAge').textContent=
+   ages.length
+    ?Math.max(
      0,
      now-Math.max(...ages)
     )+'ms'
-   :'—';
+    :'—';
 
- $('feedState').textContent=
-  (upB&&downB)
-   ?'LIVE'
-   :'WAITING';
+ if($('feedState'))
+  $('feedState').textContent=
+   upB&&downB
+    ?'LIVE'
+    :'WAITING';
 
- $('upProb').textContent=
-  (x.upProbability*100).toFixed(1)+'%';
+ if($('upProb'))
+  $('upProb').textContent=
+   (x.upProbability*100)
+    .toFixed(1)+'%';
 
- $('downProb').textContent=
-  (x.downProbability*100).toFixed(1)+'%';
+ if($('downProb'))
+  $('downProb').textContent=
+   (x.downProbability*100)
+    .toFixed(1)+'%';
 
- $('probBarUp').style.width=
-  (x.upProbability*100).toFixed(1)+'%';
+ if($('probBarUp'))
+  $('probBarUp').style.width=
+   (x.upProbability*100)
+    .toFixed(1)+'%';
 
- $('ret1s').textContent=
-  fmtPct(x.return1s);
+ if($('ret1s'))
+  $('ret1s').textContent=
+   fmtPct(x.return1s);
 
- $('ret3s').textContent=
-  fmtPct(x.return3s);
+ if($('ret3s'))
+  $('ret3s').textContent=
+   fmtPct(x.return3s);
 
- $('ret5s').textContent=
-  fmtPct(x.return5s);
+ if($('ret5s'))
+  $('ret5s').textContent=
+   fmtPct(x.return5s);
 
- $('factorMomentum').textContent=
-  fmtPct(x.components?.momentum);
+ if($('factorMomentum'))
+  $('factorMomentum').textContent=
+   fmtPct(
+    x.components?.momentum
+   );
 
- $('factorFlow').textContent=
-  fmtPct(x.components?.orderFlow);
+ if($('factorFlow'))
+  $('factorFlow').textContent=
+   fmtPct(
+    x.components?.orderFlow
+   );
 
- $('factorPoly').textContent=
-  fmtPct(x.components?.polymarketPressure);
+ if($('factorPoly'))
+  $('factorPoly').textContent=
+   fmtPct(
+    x.components?.polymarketPressure
+   );
 
- $('factorRsi').textContent=
-  x.components?.rsi!=null
-   ?x.components.rsi.toFixed(1)
-   :'—';
+ if($('factorRsi'))
+  $('factorRsi').textContent=
+   x.components?.rsi!=null
+    ?x.components.rsi.toFixed(1)
+    :'—';
 
- $('modelScore').textContent=
-  x.score!=null
-   ?x.score.toFixed(1)
-   :'—';
+ if($('modelScore'))
+  $('modelScore').textContent=
+   x.score!=null
+    ?x.score.toFixed(1)
+    :'—';
 
- $('volatility').textContent=
-  x.volatility!=null
-   ?(x.volatility*100).toFixed(3)+'%'
-   :'—';
+ if($('volatility'))
+  $('volatility').textContent=
+   x.volatility!=null
+    ?(
+     x.volatility*100
+    ).toFixed(3)+'%'
+    :'—';
 
- $('rsiValue').textContent=
-  x.components?.rsi!=null
-   ?x.components.rsi.toFixed(1)
-   :'—';
+ if($('rsiValue'))
+  $('rsiValue').textContent=
+   x.components?.rsi!=null
+    ?x.components.rsi.toFixed(1)
+    :'—';
 
- $('depthZone').textContent=
-  x.components?.liquidityZone||'—';
+ if($('depthZone'))
+  $('depthZone').textContent=
+   x.components?.liquidityZone||
+   '—';
 
- $('alignment').textContent=
-  (x.components?.alignment||0)+'/4';
+ if($('alignment'))
+  $('alignment').textContent=
+   (
+    x.components?.alignment||0
+   )+'/4';
 
- $('tradeCount').textContent=
-  String(trades.length);
+ if($('tradeCount'))
+  $('tradeCount').textContent=
+   String(trades.length);
 
- $('bookSpread').textContent=
-  ((ua?.spread||0)+(da?.spread||0))
-   ?cents(
-     ((ua?.spread||0)+(da?.spread||0))/2
+ if($('bookSpread'))
+  $('bookSpread').textContent=
+   (
+    (ua?.spread||0)+
+    (da?.spread||0)
+   )
+    ?cents(
+     (
+      (ua?.spread||0)+
+      (da?.spread||0)
+     )/2
     )
-   :'—';
+    :'—';
 
- $('bookLiquidity').textContent=
-  x.components?.polyLiquidity!=null
-   ?(x.components.polyLiquidity*100).toFixed(0)+'%'
-   :'—';
+ if($('bookLiquidity'))
+  $('bookLiquidity').textContent=
+   x.components?.polyLiquidity!=null
+    ?(
+     x.components.polyLiquidity*100
+    ).toFixed(0)+'%'
+    :'—';
 
- $('binanceDot').className=
-  binance.ts&&now-binance.ts<2500
-   ?'live'
-   :'warn';
+ if($('binanceDot'))
+  $('binanceDot').className=
+   binance.ts&&
+   now-binance.ts<2500
+    ?'live'
+    :'warn';
 
- $('polyDot').className=
-  (upB&&downB)
-   ?'live'
-   :'warn';
+ if($('polyDot'))
+  $('polyDot').className=
+   upB&&downB
+    ?'live'
+    :'warn';
 
  drawBTCChart();
 
- $('upModelHint').textContent=
-  `${x.confidence.toFixed(1)}% confidence • ${
-   x.components?.alignment||0
-  }/4 agreement`;
+ if($('upModelHint'))
+  $('upModelHint').textContent=
+   `${x.confidence.toFixed(1)}% confidence • ${
+    x.components?.alignment||0
+   }/4 agreement`;
 
- $('downModelHint').textContent=
-  `${x.confidence.toFixed(1)}% confidence • ${
-   x.components?.alignment||0
-  }/4 agreement`;
+ if($('downModelHint'))
+  $('downModelHint').textContent=
+   `${x.confidence.toFixed(1)}% confidence • ${
+    x.components?.alignment||0
+   }/4 agreement`;
 
  const upDelta=
-  x.upProbability-lastUpProb;
+  x.upProbability-
+  lastUpProb;
 
  const downDelta=
-  x.downProbability-lastDownProb;
+  x.downProbability-
+  lastDownProb;
 
  if(
   Math.abs(upDelta)>=.008&&
-  now-lastUpFlash>120
+  now-lastUpFlash>120&&
+  $('upProbCard')
  ){
 
   const card=$('upProbCard');
 
-  card.classList.remove('probFlashUp');
+  card.classList.remove(
+   'probFlashUp'
+  );
 
   void card.offsetWidth;
 
-  card.classList.add('probFlashUp');
+  card.classList.add(
+   'probFlashUp'
+  );
 
   lastUpFlash=now;
  }
 
  if(
   Math.abs(downDelta)>=.008&&
-  now-lastDownFlash>120
+  now-lastDownFlash>120&&
+  $('downProbCard')
  ){
 
   const card=$('downProbCard');
 
-  card.classList.remove('probFlashDown');
+  card.classList.remove(
+   'probFlashDown'
+  );
 
   void card.offsetWidth;
 
-  card.classList.add('probFlashDown');
+  card.classList.add(
+   'probFlashDown'
+  );
 
   lastDownFlash=now;
  }
@@ -1720,24 +2954,29 @@ function render(){
    ?ua?.ask
    :da?.ask;
 
- $('sniperBox').className=
-  'sniper '+s.stage.toLowerCase();
+ if($('sniperBox'))
+  $('sniperBox').className=
+   'sniper '+s.stage.toLowerCase();
 
- $('sniperText').textContent=
-  `${
-   s.stage==='ENTRY'
-    ?'⚡'
-    :s.stage==='SETUP'
-     ?'🎯'
-     :'👀'
-  } ${s.stage}`;
+ if($('sniperText'))
+  $('sniperText').textContent=
+   `${
+    s.stage==='ENTRY'
+     ?'⚡'
+     :s.stage==='SETUP'
+      ?'🎯'
+      :'👀'
+   } ${s.stage}`;
 
- $('sniperSub').textContent=
-  `5M • expires ${
-   fmtTime(market?.endTs*1000)
-  } • signal ${
-   fmtTime(s.generatedAt)
-  }`;
+ if($('sniperSub'))
+  $('sniperSub').textContent=
+   `5M • expires ${
+    fmtTime(
+     market?.endTs*1000
+    )
+   } • signal ${
+    fmtTime(s.generatedAt)
+   }`;
 
  if($('entryQuality'))
   $('entryQuality').textContent=
@@ -1747,51 +2986,62 @@ function render(){
      ?'FORMING'
      :'FILTERED';
 
- $('entryStage').textContent=
-  s.stage;
+ if($('entryStage'))
+  $('entryStage').textContent=
+   s.stage;
 
- $('entrySide').textContent=
-  s.side;
+ if($('entrySide'))
+  $('entrySide').textContent=
+   s.side;
 
- $('entrySide').className=
-  s.side==='UP'
-   ?'upText'
-   :s.side==='DOWN'
-    ?'downText'
-    :'';
+ if($('entrySide'))
+  $('entrySide').className=
+   s.side==='UP'
+    ?'upText'
+    :s.side==='DOWN'
+     ?'downText'
+     :'';
 
- $('liveEntryAsk').textContent=
-  liveAsk
-   ?cents(liveAsk)
-   :'—';
+ if($('liveEntryAsk'))
+  $('liveEntryAsk').textContent=
+   liveAsk
+    ?cents(liveAsk)
+    :'—';
 
- $('signalTime').textContent=
-  s.generatedAt
-   ?fmtTime(s.generatedAt)
-   :'—';
+ if($('signalTime'))
+  $('signalTime').textContent=
+   s.generatedAt
+    ?fmtTime(s.generatedAt)
+    :'—';
 
- $('venueDetail').textContent=
-  `Binance BTC/USDT • ${
-   binance.ts
-    ?Math.max(0,now-binance.ts)
-    :'—'
-  }ms feed age • ${
-   trades.length
-  } buffered trades • ${
-   binance.bids.length
-  }/${
-   binance.asks.length
-  } depth levels`;
+ if($('venueDetail'))
+  $('venueDetail').textContent=
+   `Binance BTC/USDT • ${
+    binance.ts
+     ?Math.max(
+      0,
+      now-binance.ts
+     )
+     :'—'
+   }ms feed age • ${
+    trades.length
+   } buffered trades • ${
+    binance.bids.length
+   }/${
+    binance.asks.length
+   } depth levels`;
 
- $('status').textContent=
-  binance.ts&&now-binance.ts<2500
-   ?`LIVE • Binance Spot + Polymarket • ${
-     fmtTime(now)
-    }`
-   :'WAITING FOR BINANCE LIVE FEED';
+ if($('status'))
+  $('status').textContent=
+   binance.ts&&
+   now-binance.ts<2500
+    ?`LIVE • Binance Spot + Polymarket • ${
+      fmtTime(now)
+     }`
+    :'WAITING FOR BINANCE LIVE FEED';
 
 
- /* Directional edge / hypothetical position guidance */
+ /* Directional edge */
 
  const buyUp=x.upEdge;
  const buyDown=x.downEdge;
@@ -1816,27 +3066,31 @@ function render(){
    sellDown
   );
 
- $('oneDirSignal').textContent=
-  bestBuy>.025
-   ?`BUY ${bestSide}`
-   :'WAIT';
+ if($('oneDirSignal'))
+  $('oneDirSignal').textContent=
+   bestBuy>.025
+    ?`BUY ${bestSide}`
+    :'WAIT';
 
- $('oneDirSignal').className=
-  bestBuy>.025
-   ?(
-    bestSide==='UP'
-     ?'upText'
-     :'downText'
-   )
-   :'';
+ if($('oneDirSignal'))
+  $('oneDirSignal').className=
+   bestBuy>.025
+    ?(
+     bestSide==='UP'
+      ?'upText'
+      :'downText'
+    )
+    :'';
 
- $('oneDirDetail').textContent=
-  bestBuy>.025
-   ?`Model ${
+ if($('oneDirDetail'))
+  $('oneDirDetail').textContent=
+   bestBuy>.025
+    ?`Model ${
      (
-      (bestSide==='UP'
-       ?x.upProbability
-       :x.downProbability
+      (
+       bestSide==='UP'
+        ?x.upProbability
+        :x.downProbability
       )*100
      ).toFixed(1)
     }% vs ask ${
@@ -1848,7 +3102,7 @@ function render(){
     } • edge ${
      fmt(bestBuy)
     }`
-   :'No sufficient model-vs-ask edge';
+    :'No sufficient model-vs-ask edge';
 
  const exitSide=
   bestSell===sellUp
@@ -1864,54 +3118,67 @@ function render(){
  else if(bestBuy>.04)
   action=`HOLD / ADD ${bestSide}`;
 
- $('positionAction').textContent=
-  action;
+ if($('positionAction'))
+  $('positionAction').textContent=
+   action;
 
- $('positionAction').className=
-  action.includes('SELL')
-   ?(
-    exitSide==='UP'
-     ?'upText'
-     :'downText'
-   )
-   :'';
+ if($('positionAction'))
+  $('positionAction').className=
+   action.includes('SELL')
+    ?(
+     exitSide==='UP'
+      ?'upText'
+      :'downText'
+    )
+    :'';
 
- $('positionDetail').textContent=
-  `Best bid edge ${fmt(exitEdge)} • current model ${
-   bestSide==='UP'
-    ?(x.upProbability*100).toFixed(1)
-    :(x.downProbability*100).toFixed(1)
-  }%`;
+ if($('positionDetail'))
+  $('positionDetail').textContent=
+   `Best bid edge ${fmt(exitEdge)} • current model ${
+    bestSide==='UP'
+     ?(
+      x.upProbability*100
+     ).toFixed(1)
+     :(
+      x.downProbability*100
+     ).toFixed(1)
+   }%`;
 
- $('bestEdge').textContent=
-  fmt(
-   Math.max(
-    bestBuy,
-    bestSell
-   )
-  );
+ if($('bestEdge'))
+  $('bestEdge').textContent=
+   fmt(
+    Math.max(
+     bestBuy,
+     bestSell
+    )
+   );
 
- $('bestEdgeDetail').textContent=
-  `BUY ${fmt(bestBuy)} • SELL/EXIT ${fmt(bestSell)}`;
+ if($('bestEdgeDetail'))
+  $('bestEdgeDetail').textContent=
+   `BUY ${fmt(bestBuy)} • SELL/EXIT ${fmt(bestSell)}`;
 
- $('bidEdge').textContent=
-  fmt(bestSell);
+ if($('bidEdge'))
+  $('bidEdge').textContent=
+   fmt(bestSell);
 
- $('bidEdgeDetail').textContent=
-  `UP bid ${cents(ua?.bid)} • DOWN bid ${cents(da?.bid)}`;
+ if($('bidEdgeDetail'))
+  $('bidEdgeDetail').textContent=
+   `UP bid ${cents(ua?.bid)} • DOWN bid ${cents(da?.bid)}`;
 
 
- /* Split mode */
+ /* Split */
 
  const splitTotal=
   Math.max(
-   x.upProbability+x.downProbability,
+   x.upProbability+
+   x.downProbability,
    .0001
   );
 
  const upAlloc=
   clamp(
-   x.upProbability/splitTotal*100,
+   x.upProbability/
+   splitTotal*100,
    0,
    100
   );
@@ -1919,15 +3186,17 @@ function render(){
  const downAlloc=
   100-upAlloc;
 
- $('upAlloc').textContent=
-  tradeMode==='split'
-   ?upAlloc.toFixed(0)+'%'
-   :'—';
+ if($('upAlloc'))
+  $('upAlloc').textContent=
+   tradeMode==='split'
+    ?upAlloc.toFixed(0)+'%'
+    :'—';
 
- $('downAlloc').textContent=
-  tradeMode==='split'
-   ?downAlloc.toFixed(0)+'%'
-   :'—';
+ if($('downAlloc'))
+  $('downAlloc').textContent=
+   tradeMode==='split'
+    ?downAlloc.toFixed(0)+'%'
+    :'—';
 
  let splitDecision='WAIT';
  let holdSell='—';
@@ -1935,19 +3204,23 @@ function render(){
  if(tradeMode==='split'){
 
   const spreadCost=
-   (ua?.ask||0)+(da?.ask||0);
+   (ua?.ask||0)+
+   (da?.ask||0);
 
   if(spreadCost<.995)
-   splitDecision='LOCKED-COST EDGE';
+   splitDecision=
+    'LOCKED-COST EDGE';
 
   else if(
    bestBuy>.035&&
    x.volRegime<2.2
   )
-   splitDecision=`LEAN ${bestSide}`;
+   splitDecision=
+    `LEAN ${bestSide}`;
 
   else
-   splitDecision='HOLD / WAIT';
+   splitDecision=
+    'HOLD / WAIT';
 
   holdSell=
    bestSell>.03
@@ -1969,20 +3242,25 @@ function render(){
     :'HOLD';
  }
 
- $('splitDecision').textContent=
-  splitDecision;
+ if($('splitDecision'))
+  $('splitDecision').textContent=
+   splitDecision;
 
- $('holdSell').textContent=
-  holdSell;
+ if($('holdSell'))
+  $('holdSell').textContent=
+   holdSell;
+
+
+ /* Calibration */
 
  if($('calAccuracy'))
   $('calAccuracy').textContent=
    calibration.total
     ?(
-      calibration.correct/
-      calibration.total*
-      100
-     ).toFixed(1)+'%'
+     calibration.correct/
+     calibration.total*
+     100
+    ).toFixed(1)+'%'
     :'—';
 
  if($('calBrier'))
@@ -2002,7 +3280,9 @@ function render(){
 
  const resolved=
   storedEntries.filter(
-   e=>e.result==='UP'||e.result==='DOWN'
+   e=>
+    e.result==='UP'||
+    e.result==='DOWN'
   );
 
  const wins=
@@ -2041,7 +3321,11 @@ function render(){
  const probPredCorrect=
   resolved.filter(
    e=>(
-    (e.upProb||0)>=(e.downProb||0)
+    (
+     e.upProb||0
+    )>=(
+     e.downProb||0
+    )
      ?'UP'
      :'DOWN'
    )===e.result
@@ -2059,44 +3343,44 @@ function render(){
   $('sniperWinRate').textContent=
    totalResolved
     ?(
-      wins/
-      totalResolved*
-      100
-     ).toFixed(1)+'%'
+     wins/
+     totalResolved*
+     100
+    ).toFixed(1)+'%'
     :'—';
 
  if($('probAccuracy'))
   $('probAccuracy').textContent=
    totalResolved
     ?(
-      probPredCorrect/
-      totalResolved*
-      100
-     ).toFixed(1)+'%'
+     probPredCorrect/
+     totalResolved*
+     100
+    ).toFixed(1)+'%'
     :'—';
 
  if($('upProbAccuracy'))
   $('upProbAccuracy').textContent=
    upPred.length
     ?`${upCorrect}/${upPred.length} • ${
-      (
-       upCorrect/
-       upPred.length*
-       100
-      ).toFixed(1)
-     }%`
+     (
+      upCorrect/
+      upPred.length*
+      100
+     ).toFixed(1)
+    }%`
     :'—';
 
  if($('downProbAccuracy'))
   $('downProbAccuracy').textContent=
    downPred.length
     ?`${downCorrect}/${downPred.length} • ${
-      (
-       downCorrect/
-       downPred.length*
-       100
-      ).toFixed(1)
-     }%`
+     (
+      downCorrect/
+      downPred.length*
+      100
+     ).toFixed(1)
+    }%`
     :'—';
 
 
@@ -2104,26 +3388,29 @@ function render(){
 
  const log=$('entryHistory');
 
- log.innerHTML=
-  historyEntries.length
-   ?historyEntries.map(
-    h=>`
-     <div class="historyRow">
-      <b>${h.stage} ${h.side}</b>
-      <span>${fmtTime(h.generatedAt)} → ${fmtTime(h.marketEnd)}</span>
-      <span>${
-       h.result
-        ?`RESULT ${h.result} • ${
+ if(log){
+
+  log.innerHTML=
+   historyEntries.length
+    ?historyEntries.map(
+     h=>`
+      <div class="historyRow">
+       <b>${h.stage} ${h.side}</b>
+       <span>${fmtTime(h.generatedAt)} → ${fmtTime(h.marketEnd)}</span>
+       <span>${
+        h.result
+         ?`RESULT ${h.result} • ${
           h.correct
            ?'✓ HIT'
            :'✕ MISS'
          }`
-        :'PENDING'
-      }</span>
-     </div>
-    `
-   ).join('')
-   :'<div class="historyEmpty">No confirmed sniper entries yet.</div>';
+         :'PENDING'
+       }</span>
+      </div>
+     `
+    ).join('')
+    :'<div class="historyEmpty">No confirmed sniper entries yet.</div>';
+ }
 
  renderRecentResults();
 }
@@ -2165,7 +3452,8 @@ function drawBTCChart(){
    Math.round(h*dpr);
  }
 
- const ctx=c.getContext('2d');
+ const ctx=
+  c.getContext('2d');
 
  ctx.setTransform(
   dpr,
@@ -2189,7 +3477,8 @@ function drawBTCChart(){
    .map(z=>z.p)
    .filter(Number.isFinite);
 
- if(pts.length<2)return;
+ if(pts.length<2)
+  return;
 
  const lo=Math.min(...pts);
  const hi=Math.max(...pts);
@@ -2239,11 +3528,15 @@ function drawBTCChart(){
  pts.forEach((v,i)=>{
 
   const x=
-   i/(pts.length-1)*w;
+   i/
+   (pts.length-1)*
+   w;
 
   const y=
    h-
-   (v-min)/(max-min)*h;
+   (v-min)/
+   (max-min)*
+   h;
 
   i
    ?ctx.lineTo(x,y)
@@ -2262,11 +3555,15 @@ function drawBTCChart(){
  pts.forEach((v,i)=>{
 
   const x=
-   i/(pts.length-1)*w;
+   i/
+   (pts.length-1)*
+   w;
 
   const y=
    h-
-   (v-min)/(max-min)*h;
+   (v-min)/
+   (max-min)*
+   h;
 
   i
    ?ctx.lineTo(x,y)
@@ -2323,7 +3620,8 @@ function resultFromMarket(m){
 
   if(idx>=0){
 
-   const o=outs[idx]||'';
+   const o=
+    outs[idx]||'';
 
    return o.includes('DOWN')
     ?'DOWN'
@@ -2351,21 +3649,27 @@ function resultFromMarket(m){
  return null;
 }
 
+
 async function fetchMarketBySlug(slug){
 
  for(const url of [
+
   `https://gamma-api.polymarket.com/markets/slug/${encodeURIComponent(slug)}`,
+
   `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}`
+
  ]){
 
   try{
 
-   const r=await fetch(
-    url,
-    {cache:'no-store'}
-   );
+   const r=
+    await fetch(
+     url,
+     {cache:'no-store'}
+    );
 
-   if(!r.ok)continue;
+   if(!r.ok)
+    continue;
 
    const j=await r.json();
 
@@ -2374,13 +3678,15 @@ async function fetchMarketBySlug(slug){
      ?j[0]
      :(j.data||[])[0]||j;
 
-   if(m)return m;
+   if(m)
+    return m;
 
   }catch{}
  }
 
  return null;
 }
+
 
 async function loadRecentResults(){
 
@@ -2409,7 +3715,8 @@ async function loadRecentResults(){
   const m=
    await fetchMarketBySlug(slug);
 
-  if(!m)continue;
+  if(!m)
+   continue;
 
   const result=
    resultFromMarket(m);
@@ -2440,6 +3747,7 @@ async function loadRecentResults(){
  recentResults=
   arr.slice(0,10);
 }
+
 
 function renderRecentResults(){
 
@@ -2474,6 +3782,7 @@ function renderRecentResults(){
    ========================================================= */
 
 function entryKey(h){
+
  return `${
   h.marketEnd||0
  }|${
@@ -2482,6 +3791,7 @@ function entryKey(h){
   h.side||''
  }`;
 }
+
 
 async function loadCalibration(){
 
@@ -2502,7 +3812,9 @@ async function loadCalibration(){
   };
 
   storedEntries=
-   Array.isArray(z.sniperEntries)
+   Array.isArray(
+    z.sniperEntries
+   )
     ?z.sniperEntries
     :[];
 
@@ -2514,13 +3826,16 @@ async function loadCalibration(){
    0,
    historyEntries.length,
    ...storedEntries
-    .filter(x=>x.stage==='ENTRY')
+    .filter(
+     x=>x.stage==='ENTRY'
+    )
     .slice(-30)
     .reverse()
   );
 
  }catch{}
 }
+
 
 async function saveCalibration(){
 
@@ -2534,8 +3849,10 @@ async function saveCalibration(){
       'btc5mSniper'
      )||'{}'
     ),
+
     sniperEntries:
      storedEntries.slice(-200),
+
     sniperCalibration:
      calibration
    })
@@ -2543,6 +3860,7 @@ async function saveCalibration(){
 
  }catch{}
 }
+
 
 async function saveVisibility(){
 
@@ -2556,12 +3874,14 @@ async function saveVisibility(){
       'btc5mSniper'
      )||'{}'
     ),
+
     sectionVisibility
    })
   );
 
  }catch{}
 }
+
 
 function probabilityBin(p){
 
@@ -2579,6 +3899,7 @@ function probabilityBin(p){
  );
 }
 
+
 function calibratedProbability(raw){
 
  const b=
@@ -2586,7 +3907,10 @@ function calibratedProbability(raw){
    probabilityBin(raw)
   ];
 
- if(!b||b.n<5)
+ if(
+  !b||
+  b.n<5
+ )
   return raw;
 
  const empirical=
@@ -2599,11 +3923,13 @@ function calibratedProbability(raw){
   );
 
  return clamp(
-  raw*(1-w)+empirical*w,
+  raw*(1-w)+
+  empirical*w,
   .01,
   .99
  );
 }
+
 
 function brier(){
 
@@ -2639,16 +3965,21 @@ async function settlePending(){
    let m=null;
 
    for(const url of [
+
     `https://gamma-api.polymarket.com/markets/slug/${encodeURIComponent(e.slug)}`,
+
     `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(e.slug)}`
+
    ]){
 
-    const r=await fetch(
-     url,
-     {cache:'no-store'}
-    );
+    const r=
+     await fetch(
+      url,
+      {cache:'no-store'}
+     );
 
-    if(!r.ok)continue;
+    if(!r.ok)
+     continue;
 
     const j=await r.json();
 
@@ -2657,15 +3988,18 @@ async function settlePending(){
       ?j[0]
       :(j.data||[])[0]||j;
 
-    if(m)break;
+    if(m)
+     break;
    }
 
-   if(!m)continue;
+   if(!m)
+    continue;
 
-   let result=
+   const result=
     resultFromMarket(m);
 
-   if(!result)continue;
+   if(!result)
+    continue;
 
    e.result=result;
 
@@ -2714,7 +4048,9 @@ async function settlePending(){
    0,
    historyEntries.length,
    ...storedEntries
-    .filter(x=>x.stage==='ENTRY')
+    .filter(
+     x=>x.stage==='ENTRY'
+    )
     .slice(-30)
     .reverse()
   );
@@ -2722,6 +4058,7 @@ async function settlePending(){
   await saveCalibration();
  }
 }
+
 
 async function persistEntry(h){
 
@@ -2789,55 +4126,74 @@ async function ensureMarket(){
 
  }catch(e){
 
-  $('status').textContent=
-   'Market discovery: '+
-   e.message;
+  if($('status'))
+   $('status').textContent=
+    'Market discovery: '+
+    e.message;
  }
 }
 
-$('refresh').onclick=async()=>{
- market=null;
- await ensureMarket();
- render();
-};
 
-$('clear').onclick=()=>{
- historyEntries.length=0;
- render();
-};
+if($('refresh'))
+ $('refresh').onclick=async()=>{
 
-$('statsToggle').onclick=()=>{
+  market=null;
 
- const e=$('statsDetails');
- const b=$('statsToggle');
+  await ensureMarket();
 
- e.classList.toggle('show');
-
- b.textContent=
-  e.classList.contains('show')
-   ?'HIDE STATS'
-   :'SHOW STATS';
-};
-
-$('modeSelect').onchange=e=>{
-
- selectedMode=e.target.value;
-
- signalState={
-  stage:'WATCH',
-  side:'WAIT',
-  confidence:50,
-  generatedAt:Date.now(),
-  validUntil:Date.now()+1000,
-  potential:0,
-  edge:0,
-  reason:'Mode changed',
-  lockedAsk:0
+  render();
  };
-};
+
+
+if($('clear'))
+ $('clear').onclick=()=>{
+
+  historyEntries.length=0;
+
+  render();
+ };
+
+
+if($('statsToggle'))
+ $('statsToggle').onclick=()=>{
+
+  const e=$('statsDetails');
+  const b=$('statsToggle');
+
+  if(!e||!b)return;
+
+  e.classList.toggle('show');
+
+  b.textContent=
+   e.classList.contains('show')
+    ?'HIDE STATS'
+    :'SHOW STATS';
+ };
+
+
+if($('modeSelect'))
+ $('modeSelect').onchange=e=>{
+
+  selectedMode=e.target.value;
+
+  signalState={
+   stage:'WATCH',
+   side:'WAIT',
+   confidence:50,
+   generatedAt:Date.now(),
+   validUntil:Date.now()+1000,
+   potential:0,
+   edge:0,
+   reason:'Mode changed',
+   lockedAsk:0
+  };
+ };
+
 
 document
- .querySelectorAll('.hideToggle')
+ .querySelectorAll(
+  '.hideToggle'
+ )
  .forEach(btn=>
   btn.onclick=async()=>{
 
@@ -2845,6 +4201,8 @@ document
     btn.dataset.target;
 
    const el=$(target);
+
+   if(!el)return;
 
    el.classList.toggle(
     'sectionHidden'
@@ -2867,6 +4225,7 @@ document
   }
  );
 
+
 function applyVisibility(){
 
  Object.entries(
@@ -2881,7 +4240,8 @@ function applyVisibility(){
      `.hideToggle[data-target="${id}"]`
     );
 
-   if(!el||!btn)return;
+   if(!el||!btn)
+    return;
 
    el.classList.toggle(
     'sectionHidden',
@@ -2893,7 +4253,8 @@ function applyVisibility(){
      ?'SHOW'
      :'HIDE';
   }
-);
+ );
+}
 
 
 /* =========================================================
@@ -2914,9 +4275,14 @@ function applyVisibility(){
 
  await ensureMarket();
 
+ render();
+
  setInterval(()=>{
+
   ensureMarket();
+
   render();
+
  },250);
 
  setInterval(()=>{
@@ -2935,21 +4301,28 @@ function applyVisibility(){
  },1000);
 
  setInterval(()=>{
+
   settlePending()
    .then(render)
    .catch(()=>{});
+
  },30000);
 
  setInterval(()=>{
+
   loadRecentResults()
    .then(render)
    .catch(()=>{});
+
  },60000);
 
 })();
 
 
-$('tradeMode').onchange=e=>{
- tradeMode=e.target.value;
- render();
-};
+if($('tradeMode'))
+ $('tradeMode').onchange=e=>{
+
+  tradeMode=e.target.value;
+
+  render();
+ };
