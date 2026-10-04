@@ -2224,3 +2224,545 @@ footer button{
   }
 
 }
+
+/* =========================================================
+   PRICE COMPARISON
+   ========================================================= */
+
+.comparisonPanel{
+  grid-column:span 12;
+  overflow:hidden;
+}
+
+.comparisonLayout{
+  display:grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    300px;
+  gap:14px;
+}
+
+.comparisonPrices{
+  display:grid;
+  gap:9px;
+}
+
+.comparisonRow{
+  display:grid;
+  grid-template-columns:
+    190px
+    minmax(150px,1fr)
+    auto;
+
+  align-items:center;
+  gap:18px;
+
+  min-width:0;
+
+  padding:14px 16px;
+
+  border-radius:12px;
+
+  background:#0a1017;
+
+  border:1px solid #202b38;
+
+  transition:
+    border-color .2s ease,
+    transform .2s ease,
+    background .2s ease;
+}
+
+.comparisonRow:hover{
+  transform:translateY(-1px);
+  border-color:#354456;
+}
+
+.comparisonName{
+  min-width:0;
+}
+
+.comparisonName span{
+  display:block;
+  font-size:11px;
+  font-weight:950;
+  letter-spacing:.08em;
+}
+
+.comparisonName small{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:9px;
+}
+
+.comparisonRow>b{
+  font-size:28px;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+
+.binanceCompare{
+  border-color:#263544;
+}
+
+.binanceCompare>b{
+  color:var(--text);
+}
+
+.upCompare{
+  border-color:#185638;
+}
+
+.upCompare>b{
+  color:var(--up);
+}
+
+.downCompare{
+  border-color:#642d35;
+}
+
+.downCompare>b{
+  color:var(--down);
+}
+
+.comparisonChanges{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  white-space:nowrap;
+}
+
+.comparisonChanges span{
+  color:#718094;
+  font-size:9px;
+  font-weight:900;
+}
+
+.comparisonChanges strong{
+  display:inline-block;
+  margin-left:3px;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+
+.comparisonSide{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+
+.comparisonSide>div{
+  min-width:0;
+  padding:14px;
+
+  border:1px solid #202b38;
+  border-radius:11px;
+
+  background:#0b1118;
+}
+
+.comparisonSide span{
+  display:block;
+  color:#718094;
+  font-size:9px;
+  font-weight:900;
+}
+
+.comparisonSide b{
+  display:block;
+  margin-top:7px;
+  color:#e9eef5;
+  font-size:17px;
+  font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;
+}
+
+#compareSpotUpMove{
+  color:var(--up);
+}
+
+#compareSpotDownMove{
+  color:var(--down);
+}
+
+#compareCombined{
+  color:var(--gold);
+}
+
+
+/* =========================================================
+   BIGGER DESKTOP TEXT
+   ========================================================= */
+
+@media (min-width:801px){
+
+  body{
+    font-size:15px !important;
+  }
+
+  .brand h1{
+    font-size:21px !important;
+  }
+
+  .brand p{
+    font-size:12px !important;
+  }
+
+  .connection{
+    font-size:11px !important;
+  }
+
+  button,
+  select,
+  .modeLine select,
+  .panelHead select{
+    font-size:12px !important;
+    padding:10px 13px !important;
+  }
+
+  .panelHead h2{
+    font-size:15px !important;
+  }
+
+  .panelHead>span{
+    font-size:11px !important;
+  }
+
+  .hero label,
+  .priceHero label{
+    font-size:11px !important;
+  }
+
+  .hero h2{
+    font-size:25px !important;
+  }
+
+  .heroSub{
+    font-size:11px !important;
+  }
+
+  .priceHero strong{
+    font-size:42px !important;
+  }
+
+  .probCard b,
+  .bookCard>b{
+    font-size:30px !important;
+  }
+
+  .probCard small,
+  .bookCard small{
+    font-size:12px !important;
+  }
+
+  .factorRow,
+  .diagGrid,
+  .detailGrid{
+    font-size:13px !important;
+  }
+
+  .factorRow span,
+  .diagCard span,
+  .detailGrid span{
+    font-size:11px !important;
+  }
+
+  .factorRow b,
+  .diagCard b,
+  .detailGrid b{
+    font-size:16px !important;
+  }
+
+  .sniperMain small{
+    font-size:12px !important;
+  }
+
+  .sniperPanel .sniperMain strong{
+    font-size:40px !important;
+  }
+
+  .sniperReason span{
+    font-size:14px !important;
+  }
+
+  .sniperPanel .entryTile span{
+    font-size:12px !important;
+  }
+
+  .sniperPanel .entryTile b{
+    font-size:26px !important;
+  }
+
+  .sniperPanel .stageCard b,
+  .sniperPanel .directionCard b{
+    font-size:31px !important;
+  }
+
+  .sniperPanel .qualityCard b{
+    font-size:18px !important;
+  }
+
+  .edgeGrid b,
+  .splitGrid b{
+    font-size:18px !important;
+  }
+
+  .edgeGrid small,
+  .splitGrid small{
+    font-size:12px !important;
+  }
+
+  .modeLine{
+    font-size:13px !important;
+  }
+
+  .statCard b{
+    font-size:21px !important;
+  }
+
+  .statCard span,
+  .statCard small{
+    font-size:11px !important;
+  }
+
+  .historyRow{
+    font-size:13px !important;
+  }
+
+  .historyRow b{
+    font-size:15px !important;
+  }
+
+  .resultCard{
+    font-size:13px !important;
+  }
+
+  .resultCard b{
+    font-size:17px !important;
+  }
+
+  .countdown strong{
+    font-size:38px !important;
+  }
+
+  footer{
+    font-size:11px !important;
+  }
+
+  .comparisonRow>b{
+    font-size:30px !important;
+  }
+
+  .comparisonName span{
+    font-size:12px !important;
+  }
+
+  .comparisonName small{
+    font-size:10px !important;
+  }
+
+  .comparisonChanges strong{
+    font-size:12px !important;
+  }
+
+  .comparisonSide b{
+    font-size:19px !important;
+  }
+}
+
+
+/* =========================================================
+   SNIPER ENTRY
+   ========================================================= */
+
+.sniperPanel .entryGrid.compactEntry{
+  display:grid !important;
+
+  grid-template-columns:
+    repeat(
+     4,
+     minmax(0,1fr)
+    ) !important;
+
+  gap:12px !important;
+
+  width:100% !important;
+
+  margin-top:14px !important;
+}
+
+.sniperPanel .entryTile{
+  min-width:0 !important;
+
+  min-height:88px !important;
+
+  padding:16px !important;
+
+  border:1px solid var(--line) !important;
+
+  border-radius:12px !important;
+
+  background:var(--panel2) !important;
+
+  display:flex !important;
+
+  flex-direction:column !important;
+
+  justify-content:center !important;
+
+  gap:8px !important;
+
+  box-sizing:border-box !important;
+}
+
+.sniperPanel .entryTile span{
+  color:var(--muted) !important;
+
+  font-size:11px !important;
+
+  font-weight:900 !important;
+
+  letter-spacing:.08em !important;
+}
+
+.sniperPanel .entryTile b{
+  font-size:22px !important;
+
+  font-weight:950 !important;
+
+  line-height:1 !important;
+
+  font-variant-numeric:
+   tabular-nums !important;
+}
+
+.sniperPanel .stageCard b,
+.sniperPanel .directionCard b{
+  font-size:26px !important;
+}
+
+.sniperPanel .askCard b{
+  color:var(--text) !important;
+}
+
+.sniperPanel .qualityCard b{
+  color:var(--gold) !important;
+}
+
+.sniperPanel .sniper.entry+
+.entryGrid .qualityCard b{
+  color:var(--up) !important;
+}
+
+.sniperPanel .sniper.setup+
+.entryGrid .qualityCard b{
+  color:var(--gold) !important;
+}
+
+.sniperPanel .sniperMain strong{
+  font-size:34px !important;
+  font-weight:950 !important;
+}
+
+.bookCard.up b,
+#upAsk{
+  color:var(--up) !important;
+}
+
+.bookCard.down b,
+#downAsk{
+  color:var(--down) !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media(max-width:900px){
+
+  .comparisonLayout{
+    grid-template-columns:1fr;
+  }
+
+  .comparisonRow{
+    grid-template-columns:
+      150px
+      1fr;
+  }
+
+  .comparisonChanges{
+    grid-column:1 / -1;
+    justify-content:flex-start;
+  }
+}
+
+
+@media(max-width:800px){
+
+  .sniperPanel .entryGrid.compactEntry{
+    grid-template-columns:
+      repeat(
+       2,
+       minmax(0,1fr)
+      ) !important;
+  }
+
+  .sniperPanel .entryTile b{
+    font-size:21px !important;
+  }
+}
+
+
+@media(max-width:600px){
+
+  .comparisonPanel{
+    grid-column:span 12;
+  }
+
+  .comparisonRow{
+    grid-template-columns:
+      1fr
+      auto;
+
+    gap:10px;
+  }
+
+  .comparisonRow>b{
+    font-size:23px;
+  }
+
+  .comparisonChanges{
+    grid-column:1 / -1;
+  }
+
+  .comparisonSide{
+    grid-template-columns:
+      1fr 1fr;
+  }
+}
+
+
+@media(max-width:480px){
+
+  .sniperPanel .entryGrid.compactEntry{
+    grid-template-columns:
+      repeat(
+       2,
+       minmax(0,1fr)
+      ) !important;
+
+    gap:8px !important;
+  }
+
+  .sniperPanel .entryTile{
+    min-height:82px !important;
+    padding:13px !important;
+  }
+
+  .sniperPanel .entryTile b{
+    font-size:19px !important;
+  }
+}
