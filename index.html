@@ -11,15 +11,20 @@
 <body>
 
 <header class="topbar">
+
   <div class="brand">
+
     <div class="brandMark">₿</div>
+
     <div>
       <h1>BTC 5M <span>SNIPER</span></h1>
       <p>Live prediction-market intelligence terminal</p>
     </div>
+
   </div>
 
   <div class="topActions">
+
     <div class="connection">
       <i id="binanceDot"></i>
       <span>BINANCE</span>
@@ -31,73 +36,124 @@
     </div>
 
     <button id="refresh">↻ REFRESH</button>
+
   </div>
+
 </header>
+
 
 <main>
 
-<!-- ================= ACTIVE MARKET ================= -->
+
+<!-- =========================================================
+     ACTIVE MARKET
+     ========================================================= -->
 
 <section class="hero panel">
 
   <div class="heroMain">
 
     <div>
+
       <label>ACTIVE MARKET</label>
 
       <h2 id="marketTitle">Connecting…</h2>
 
       <div class="heroSub">
-        <span>ENDS <b id="expiryTime">—</b></span>
-        <span>SIGNAL <b id="signalTime">—</b></span>
+
+        <span>
+          ENDS
+          <b id="expiryTime">—</b>
+        </span>
+
+        <span>
+          SIGNAL
+          <b id="signalTime">—</b>
+        </span>
+
       </div>
+
     </div>
 
+
     <div class="countdown">
+
       <small>TIME LEFT</small>
+
       <strong id="timeLeft">—</strong>
+
       <em>5 MIN MARKET</em>
+
     </div>
 
   </div>
 
+
   <div class="heroFooter">
-    <a id="openMarket"
-       class="primaryLink"
-       target="_blank"
-       rel="noopener">
+
+    <a
+      id="openMarket"
+      class="primaryLink"
+      target="_blank"
+      rel="noopener"
+    >
       OPEN POLYMARKET ↗
     </a>
 
-    <span id="status">Connecting live feeds…</span>
+    <span id="status">
+      Connecting live feeds…
+    </span>
+
   </div>
 
 </section>
 
 
-<!-- ================= PRICE COMPARISON ================= -->
+
+<!-- =========================================================
+     PRICE COMPARISON
+     ========================================================= -->
 
 <section class="panel comparisonPanel">
 
   <div class="panelHead">
+
     <h2>⚡ PRICE COMPARISON</h2>
-    <span class="feedBadge" id="comparisonFeed">LIVE</span>
+
+    <span
+      class="feedBadge"
+      id="comparisonFeed"
+    >
+      LIVE
+    </span>
+
   </div>
+
 
   <div class="comparisonLayout">
 
+
     <div class="comparisonPrices">
+
+
+      <!-- BINANCE -->
 
       <div class="comparisonRow binanceCompare">
 
         <div class="comparisonName">
+
           <span>BINANCE SPOT</span>
+
           <small>BTC / USDT</small>
+
         </div>
+
 
         <b id="compareBinancePrice">—</b>
 
+
         <div class="comparisonChanges">
+
           <span>
             1S
             <strong id="compareBinance1s">—</strong>
@@ -112,19 +168,28 @@
             15S
             <strong id="compareBinance15s">—</strong>
           </span>
+
         </div>
 
       </div>
 
 
+
+      <!-- UP -->
+
       <div class="comparisonRow upCompare">
 
         <div class="comparisonName">
+
           <span>POLYMARKET UP</span>
+
           <small>5M CONTRACT</small>
+
         </div>
 
+
         <b id="compareUpPrice">—</b>
+
 
         <div class="comparisonChanges">
 
@@ -148,14 +213,22 @@
       </div>
 
 
+
+      <!-- DOWN -->
+
       <div class="comparisonRow downCompare">
 
         <div class="comparisonName">
+
           <span>POLYMARKET DOWN</span>
+
           <small>5M CONTRACT</small>
+
         </div>
 
+
         <b id="compareDownPrice">—</b>
+
 
         <div class="comparisonChanges">
 
@@ -181,26 +254,42 @@
     </div>
 
 
+
     <div class="comparisonSide">
 
       <div>
+
         <span>BTC → UP</span>
+
         <b id="compareSpotUpMove">—</b>
+
       </div>
 
+
       <div>
+
         <span>BTC → DOWN</span>
+
         <b id="compareSpotDownMove">—</b>
+
       </div>
 
+
       <div>
+
         <span>UP + DOWN</span>
+
         <b id="compareCombined">—</b>
+
       </div>
 
+
       <div>
+
         <span>5M MARKET</span>
+
         <b id="compareMarketTime">—</b>
+
       </div>
 
     </div>
@@ -210,7 +299,10 @@
 </section>
 
 
-<!-- ================= BTC PRICE ================= -->
+
+<!-- =========================================================
+     BTC PRICE
+     ========================================================= -->
 
 <section class="panel marketChart">
 
@@ -221,33 +313,55 @@
       <em class="liveBadge">LIVE</em>
     </h2>
 
+
     <div class="spotPair">
+
       <span id="binanceBid">—</span>
+
       <span>/</span>
+
       <span id="binanceAsk">—</span>
+
     </div>
 
   </div>
 
+
   <div class="priceHero">
 
     <div>
+
       <label>SPOT PRICE</label>
+
       <strong id="spotPrice">—</strong>
+
     </div>
+
 
     <div class="last">
+
       <label>LAST TRADE</label>
+
       <b id="lastPrice">—</b>
+
     </div>
 
-    <div class="signalPill" id="spotSignal">
+
+    <div
+      class="signalPill"
+      id="spotSignal"
+    >
       WAIT
     </div>
 
   </div>
 
-  <canvas id="btcChart" height="150"></canvas>
+
+  <canvas
+    id="btcChart"
+    height="150"
+  ></canvas>
+
 
   <div class="chartMeta">
 
@@ -276,7 +390,10 @@
 </section>
 
 
-<!-- ================= MODEL PROBABILITY ================= -->
+
+<!-- =========================================================
+     MODEL PROBABILITY
+     ========================================================= -->
 
 <section class="panel probabilities">
 
@@ -285,26 +402,55 @@
     <h2>MODEL PROBABILITY</h2>
 
     <select id="modeSelect">
-      <option value="precision">PRECISION</option>
-      <option value="balanced">BALANCED</option>
-      <option value="momentum">MOMENTUM</option>
-      <option value="liquidity">LIQUIDITY EDGE</option>
-      <option value="auto">AUTO EDGE</option>
-      <option value="edge">MAX EDGE</option>
+
+      <option value="precision">
+        PRECISION
+      </option>
+
+      <option value="balanced">
+        BALANCED
+      </option>
+
+      <option value="momentum">
+        MOMENTUM
+      </option>
+
+      <option value="liquidity">
+        LIQUIDITY EDGE
+      </option>
+
+      <option value="auto">
+        AUTO EDGE
+      </option>
+
+      <option value="edge">
+        MAX EDGE
+      </option>
+
     </select>
 
   </div>
 
+
   <div class="probCards">
 
-    <div id="upProbCard" class="probCard up">
+
+    <div
+      id="upProbCard"
+      class="probCard up"
+    >
 
       <div>
+
         <span>UP</span>
+
         <small>MODEL</small>
+
       </div>
 
+
       <b id="upProb">—</b>
+
 
       <p id="upModelHint">
         Waiting for data
@@ -313,14 +459,23 @@
     </div>
 
 
-    <div id="downProbCard" class="probCard down">
+
+    <div
+      id="downProbCard"
+      class="probCard down"
+    >
 
       <div>
+
         <span>DOWN</span>
+
         <small>MODEL</small>
+
       </div>
 
+
       <b id="downProb">—</b>
+
 
       <p id="downModelHint">
         Waiting for data
@@ -330,30 +485,49 @@
 
   </div>
 
+
   <div class="probBar">
+
     <i id="probBarUp"></i>
+
   </div>
+
 
   <div class="factorRow">
 
     <div>
+
       <span>MOMENTUM</span>
+
       <b id="factorMomentum">—</b>
+
     </div>
 
+
     <div>
+
       <span>ORDER FLOW</span>
+
       <b id="factorFlow">—</b>
+
     </div>
 
+
     <div>
+
       <span>POLY PRESSURE</span>
+
       <b id="factorPoly">—</b>
+
     </div>
 
+
     <div>
+
       <span>RSI</span>
+
       <b id="factorRsi">—</b>
+
     </div>
 
   </div>
@@ -361,7 +535,10 @@
 </section>
 
 
-<!-- ================= POLYMARKET BOOK ================= -->
+
+<!-- =========================================================
+     POLYMARKET BOOK
+     ========================================================= -->
 
 <section class="panel bookPanel">
 
@@ -369,13 +546,18 @@
 
     <h2>LIVE POLYMARKET BOOK</h2>
 
-    <span class="feedBadge" id="feedState">
+    <span
+      class="feedBadge"
+      id="feedState"
+    >
       WAITING
     </span>
 
   </div>
 
+
   <div class="bookGrid">
+
 
     <div class="bookCard up">
 
@@ -391,6 +573,7 @@
       </label>
 
     </div>
+
 
 
     <div class="bookCard down">
@@ -409,6 +592,7 @@
     </div>
 
   </div>
+
 
   <div class="bookStats">
 
@@ -432,7 +616,10 @@
 </section>
 
 
-<!-- ================= SNIPER ENTRY ================= -->
+
+<!-- =========================================================
+     SNIPER ENTRY
+     ========================================================= -->
 
 <section class="panel sniperPanel">
 
@@ -446,7 +633,11 @@
 
   </div>
 
-  <div id="sniperBox" class="sniper">
+
+  <div
+    id="sniperBox"
+    class="sniper"
+  >
 
     <div class="sniperMain">
 
@@ -458,6 +649,7 @@
 
     </div>
 
+
     <div class="sniperReason">
 
       <span id="sniperSub">
@@ -468,7 +660,9 @@
 
   </div>
 
+
   <div class="entryGrid compactEntry">
+
 
     <div class="entryTile stageCard">
 
@@ -478,6 +672,7 @@
 
     </div>
 
+
     <div class="entryTile directionCard">
 
       <span>DIRECTION</span>
@@ -486,6 +681,7 @@
 
     </div>
 
+
     <div class="entryTile askCard">
 
       <span>LIVE ASK</span>
@@ -493,6 +689,7 @@
       <b id="liveEntryAsk">—</b>
 
     </div>
+
 
     <div class="entryTile qualityCard">
 
@@ -507,7 +704,10 @@
 </section>
 
 
-<!-- ================= DIRECTIONAL EDGE ================= -->
+
+<!-- =========================================================
+     DIRECTIONAL EDGE
+     ========================================================= -->
 
 <section class="panel edgePanel">
 
@@ -517,17 +717,21 @@
 
     <button
       class="hideToggle"
-      data-target="edgeBody">
+      data-target="edgeBody"
+    >
       HIDE
     </button>
 
   </div>
 
+
   <div id="edgeBody">
 
     <div class="edgeGrid">
 
+
       <div>
+
         <span>ONE-DIRECTION</span>
 
         <b id="oneDirSignal">
@@ -537,10 +741,12 @@
         <small id="oneDirDetail">
           No actionable edge yet
         </small>
+
       </div>
 
 
       <div>
+
         <span>AFTER BUY / SELL</span>
 
         <b id="positionAction">
@@ -550,10 +756,12 @@
         <small id="positionDetail">
           Model exit/hold guidance
         </small>
+
       </div>
 
 
       <div>
+
         <span>BEST EDGE</span>
 
         <b id="bestEdge">
@@ -563,10 +771,12 @@
         <small id="bestEdgeDetail">
           Probability vs book
         </small>
+
       </div>
 
 
       <div>
+
         <span>POLY BID EDGE</span>
 
         <b id="bidEdge">
@@ -576,6 +786,7 @@
         <small id="bidEdgeDetail">
           Best bid vs model
         </small>
+
       </div>
 
     </div>
@@ -585,7 +796,10 @@
 </section>
 
 
-<!-- ================= SPLIT TRADING ================= -->
+
+<!-- =========================================================
+     SPLIT TRADING
+     ========================================================= -->
 
 <section class="panel splitPanel">
 
@@ -595,11 +809,13 @@
 
     <button
       class="hideToggle"
-      data-target="splitBody">
+      data-target="splitBody"
+    >
       HIDE
     </button>
 
   </div>
+
 
   <div id="splitBody">
 
@@ -625,26 +841,44 @@
 
     </div>
 
+
     <div class="splitGrid">
 
       <div>
+
         <span>UP ALLOCATION</span>
+
         <b id="upAlloc">—</b>
+
       </div>
 
+
       <div>
+
         <span>DOWN ALLOCATION</span>
+
         <b id="downAlloc">—</b>
+
       </div>
 
+
       <div>
+
         <span>DECISION</span>
-        <b id="splitDecision">WAIT</b>
+
+        <b id="splitDecision">
+          WAIT
+        </b>
+
       </div>
 
+
       <div>
+
         <span>HOLD / SELL</span>
+
         <b id="holdSell">—</b>
+
       </div>
 
     </div>
@@ -654,7 +888,10 @@
 </section>
 
 
-<!-- ================= DIAGNOSTICS ================= -->
+
+<!-- =========================================================
+     DIAGNOSTICS
+     ========================================================= -->
 
 <section class="panel diagnostics">
 
@@ -666,36 +903,60 @@
 
   </div>
 
+
   <div class="diagGrid">
 
     <div>
+
       <span>MODEL SCORE</span>
+
       <b id="modelScore">—</b>
+
     </div>
 
+
     <div>
+
       <span>VOLATILITY</span>
+
       <b id="volatility">—</b>
+
     </div>
 
+
     <div>
+
       <span>RSI</span>
+
       <b id="rsiValue">—</b>
+
     </div>
 
+
     <div>
+
       <span>DEPTH ZONE</span>
+
       <b id="depthZone">—</b>
+
     </div>
 
+
     <div>
+
       <span>ALIGNMENT</span>
+
       <b id="alignment">—</b>
+
     </div>
 
+
     <div>
+
       <span>BUFFERED TRADES</span>
+
       <b id="tradeCount">0</b>
+
     </div>
 
   </div>
@@ -703,7 +964,10 @@
 </section>
 
 
-<!-- ================= PERFORMANCE ================= -->
+
+<!-- =========================================================
+     PERFORMANCE
+     ========================================================= -->
 
 <section class="panel statsPanel">
 
@@ -717,40 +981,78 @@
 
   </div>
 
+
   <div
     id="statsDetails"
-    class="statsDetails hiddenStats">
+    class="statsDetails hiddenStats"
+  >
 
     <div class="statsGrid">
 
+
       <div class="statCard">
+
         <span>SNIPER WINS</span>
-        <b id="sniperWins">0</b>
+
+        <b id="sniperWins">
+          0
+        </b>
+
       </div>
 
+
       <div class="statCard">
+
         <span>SNIPER LOSSES</span>
-        <b id="sniperLosses">0</b>
+
+        <b id="sniperLosses">
+          0
+        </b>
+
       </div>
 
+
       <div class="statCard">
+
         <span>WIN RATE</span>
-        <b id="sniperWinRate">—</b>
+
+        <b id="sniperWinRate">
+          —
+        </b>
+
       </div>
 
+
       <div class="statCard">
+
         <span>PROB ACCURACY</span>
-        <b id="probAccuracy">—</b>
+
+        <b id="probAccuracy">
+          —
+        </b>
+
       </div>
 
+
       <div class="statCard">
+
         <span>UP PREDICTIONS</span>
-        <b id="upProbAccuracy">—</b>
+
+        <b id="upProbAccuracy">
+          —
+        </b>
+
       </div>
 
+
       <div class="statCard">
+
         <span>DOWN PREDICTIONS</span>
-        <b id="downProbAccuracy">—</b>
+
+        <b id="downProbAccuracy">
+          —
+        </b>
+
       </div>
 
     </div>
@@ -760,9 +1062,16 @@
 </section>
 
 
-<!-- ================= HISTORY ================= -->
 
-<section class="panel">
+<!-- =========================================================
+     HISTORY
+     
+     IMPORTANT:
+     historyPanel is the GRID ITEM.
+     history remains the inner list.
+     ========================================================= -->
+
+<section class="panel historyPanel">
 
   <div class="panelHead">
 
@@ -770,9 +1079,11 @@
 
   </div>
 
+
   <div
     id="entryHistory"
-    class="history">
+    class="history"
+  >
 
     <div class="historyEmpty">
       No confirmed sniper entries yet.
@@ -783,7 +1094,10 @@
 </section>
 
 
-<!-- ================= RESULTS ================= -->
+
+<!-- =========================================================
+     RESULTS
+     ========================================================= -->
 
 <section class="panel resultsPanel">
 
@@ -793,9 +1107,11 @@
 
   </div>
 
+
   <div
     id="recentResults"
-    class="recentResults">
+    class="recentResults"
+  >
 
     <span class="historyEmpty">
       Loading results…
@@ -806,7 +1122,10 @@
 </section>
 
 
-<!-- ================= BINANCE DETAILS ================= -->
+
+<!-- =========================================================
+     BINANCE DETAILS
+     ========================================================= -->
 
 <section class="panel collapsible">
 
@@ -816,41 +1135,69 @@
 
     <button
       class="hideToggle"
-      data-target="binanceBody">
+      data-target="binanceBody"
+    >
       HIDE
     </button>
 
   </div>
 
+
   <div id="binanceBody">
 
     <div class="detailGrid">
 
+
       <div>
+
         <span>BID</span>
-        <b id="detailBid">—</b>
+
+        <b id="detailBid">
+          —
+        </b>
+
       </div>
 
+
       <div>
+
         <span>ASK</span>
-        <b id="detailAsk">—</b>
+
+        <b id="detailAsk">
+          —
+        </b>
+
       </div>
 
+
       <div>
+
         <span>DEPTH</span>
-        <b id="detailDepth">—</b>
+
+        <b id="detailDepth">
+          —
+        </b>
+
       </div>
 
+
       <div>
+
         <span>FEED AGE</span>
-        <b id="detailFeed">—</b>
+
+        <b id="detailFeed">
+          —
+        </b>
+
       </div>
 
     </div>
 
+
     <p
       class="numbers"
-      id="venueDetail">
+      id="venueDetail"
+    >
       Binance BTC/USDT spot only
     </p>
 
@@ -860,6 +1207,11 @@
 
 </main>
 
+
+
+<!-- =========================================================
+     FOOTER
+     ========================================================= -->
 
 <footer>
 
@@ -872,6 +1224,7 @@
   </button>
 
 </footer>
+
 
 
 <script src="app.js"></script>
