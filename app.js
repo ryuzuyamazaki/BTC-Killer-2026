@@ -1,6 +1,9 @@
-const $=id=>document.getElementById(id), N=x=>Number(x)||0;
+const $=id=>document.getElementById(id);
+const N=x=>Number(x)||0;
 
-let market=null, polyWS=null, polyPing=null;
+let market=null;
+let polyWS=null;
+let polyPing=null;
 
 let signalState={
  stage:'WAIT',
@@ -10,6 +13,7 @@ let signalState={
  validUntil:0,
  potential:0,
  edge:0,
+ lockedAsk:0,
  reason:'Warming up'
 };
 
@@ -61,6 +65,8 @@ let sectionVisibility={
 
 const comparisonHist=[];
 
+let lastComparisonSnapshot=0;
+
 let binanceWsLastBookTicker=0;
 let binanceFallbackTimer=null;
 let binanceFallbackMonitor=null;
@@ -71,6 +77,7 @@ let binanceFallbackMonitor=null;
    ========================================================= */
 
 const modeConfig={
+
  precision:{
   minConf:70,
   minEdge:.055,
@@ -136,6 +143,7 @@ const modeConfig={
   persist:1500,
   cooldown:60000
  }
+
 };
 
 
@@ -143,7 +151,11 @@ const modeConfig={
    HELPERS
    ========================================================= */
 
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const clamp=(x,a,b)=>
+ Math.max(
+  a,
+  Math.min(b,x)
+ );
 
 const pct=v=>
  `${(N(v)*100).toFixed(3)}%`;
@@ -152,7 +164,9 @@ const fmtPct=v=>
  `${N(v)>=0?'+':''}${(N(v)*100).toFixed(3)}%`;
 
 const cents=v=>
- N(v)?`${(N(v)*100).toFixed(2)}¢`:'—';
+ N(v)
+  ?`${(N(v)*100).toFixed(2)}¢`
+  :'—';
 
 
 function setMove(id,box,v){
@@ -196,10 +210,14 @@ function setMove(id,box,v){
 
 function openWS(url,onOpen,onMsg){
 
- let ws;
+ let ws=null;
  let delay=500;
+ let closedByUser=false;
 
  const go=()=>{
+
+  if(closedByUser)
+   return;
 
   try{
 
@@ -209,13 +227,22 @@ function openWS(url,onOpen,onMsg){
 
     delay=500;
 
-    onOpen?.(ws);
+    try{
+     onOpen?.(ws);
+    }catch{}
    };
 
    ws.onmessage=e=>{
 
     try{
-     onMsg(JSON.parse(e.data));
+
+     const data=
+      typeof e.data==='string'
+       ?JSON.parse(e.data)
+       :e.data;
+
+     onMsg?.(data);
+
     }catch{}
    };
 
@@ -223,7 +250,13 @@ function openWS(url,onOpen,onMsg){
 
    ws.onclose=()=>{
 
-    setTimeout(go,delay);
+    if(closedByUser)
+     return;
+
+    setTimeout(
+     go,
+     delay
+    );
 
     delay=Math.min(
      10000,
@@ -233,7 +266,13 @@ function openWS(url,onOpen,onMsg){
 
   }catch{
 
-   setTimeout(go,delay);
+   if(closedByUser)
+    return;
+
+   setTimeout(
+    go,
+    delay
+   );
 
    delay=Math.min(
     10000,
@@ -245,6 +284,9 @@ function openWS(url,onOpen,onMsg){
  go();
 
  return()=>{
+
+  closedByUser=true;
+
   try{
    ws?.close();
   }catch{}
@@ -305,8 +347,12 @@ function setDepth(
    p:N(x[0]),
    q:N(x[1])
   }))
-  .filter(x=>x.p>0&&x.q>0)
-  .sort((a,b)=>b.p-a.p)
+  .filter(
+   x=>x.p>0&&x.q>0
+  )
+  .sort(
+   (a,b)=>b.p-a.p
+  )
   .slice(0,20);
 
  binance.asks=(asks||[])
@@ -314,8 +360,12 @@ function setDepth(
    p:N(x[0]),
    q:N(x[1])
   }))
-  .filter(x=>x.p>0&&x.q>0)
-  .sort((a,b)=>a.p-b.p)
+  .filter(
+   x=>x.p>0&&x.q>0
+  )
+  .sort(
+   (a,b)=>a.p-b.p
+  )
   .slice(0,20);
 
  binance.depthTs=ts;
@@ -338,7 +388,7 @@ function setDepth(
 
 
 /* =========================================================
-   ADAPTIVE BINANCE REST FALLBACK
+   BINANCE REST FALLBACK
    ========================================================= */
 
 async function pollBinanceFallback(){
@@ -355,14 +405,18 @@ async function pollBinanceFallback(){
    }
   );
 
-  if(!r.ok)return;
+  if(!r.ok)
+   return;
 
   const x=await r.json();
 
   const bid=N(x.bidPrice);
   const ask=N(x.askPrice);
 
-  if(bid>0&&ask>0){
+  if(
+   bid>0&&
+   ask>0
+  ){
 
    updateBinance(
     bid,
@@ -390,7 +444,9 @@ function startBinanceFallback(){
 
    if(
     !binanceWsLastBookTicker||
-    Date.now()-binanceWsLastBookTicker>2500
+    Date.now()-
+     binanceWsLastBookTicker>
+     2500
    ){
 
     pollBinanceFallback();
@@ -402,14 +458,14 @@ function startBinanceFallback(){
 
 function stopBinanceFallback(){
 
- if(binanceFallbackTimer){
+ if(!binanceFallbackTimer)
+  return;
 
-  clearInterval(
-   binanceFallbackTimer
-  );
+ clearInterval(
+  binanceFallbackTimer
+ );
 
-  binanceFallbackTimer=null;
- }
+ binanceFallbackTimer=null;
 }
 
 
@@ -424,7 +480,10 @@ function startBinance(){
   null,
   m=>{
 
-   const d=m.data||m;
+   const d=m?.data||m;
+
+   if(!d)
+    return;
 
    if(d.e==='bookTicker'){
 
@@ -442,9 +501,10 @@ function startBinance(){
      N(d.E)||Date.now()
     );
 
+    return;
    }
 
-   else if(d.e==='depthUpdate'){
+   if(d.e==='depthUpdate'){
 
     setDepth(
      d.b,
@@ -452,9 +512,10 @@ function startBinance(){
      N(d.E)||Date.now()
     );
 
+    return;
    }
 
-   else if(d.e==='trade'){
+   if(d.e==='trade'){
 
     const q=N(d.q);
 
@@ -488,17 +549,16 @@ function startBinance(){
   binanceFallbackMonitor=
    setInterval(()=>{
 
-    if(
-     !binanceWsLastBookTicker||
-     Date.now()-binanceWsLastBookTicker>2500
-    ){
+    const age=
+     binanceWsLastBookTicker
+      ?Date.now()-
+       binanceWsLastBookTicker
+      :Infinity;
 
+    if(age>2500)
      startBinanceFallback();
-
-    }else{
-
+    else
      stopBinanceFallback();
-    }
 
    },1000);
  }
@@ -535,12 +595,12 @@ function tokenPair(m){
 
  const ids=
   parseArr(
-   m.clobTokenIds??
-   m.clob_token_ids
+   m?.clobTokenIds??
+   m?.clob_token_ids
   );
 
  const outs=
-  parseArr(m.outcomes);
+  parseArr(m?.outcomes);
 
  let up=null;
  let down=null;
@@ -574,9 +634,11 @@ function tokenPair(m){
   down=down||String(ids[1]||'');
  }
 
- return up&&down
-  ?{up,down}
-  :null;
+ return(
+  up&&down
+   ?{up,down}
+   :null
+ );
 }
 
 
@@ -588,7 +650,8 @@ async function discoverDirect(){
   );
 
  const baseTs=
-  now-now%300;
+  now-
+  now%300;
 
  const candidates=[
   baseTs,
@@ -601,20 +664,27 @@ async function discoverDirect(){
   const slug=
    `btc-updown-5m-${ts}`;
 
-  for(const path of [
+  const urls=[
 
    `https://gamma-api.polymarket.com/events?slug=${encodeURIComponent(slug)}`,
 
    `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}`
 
-  ]){
+  ];
+
+  for(const path of urls){
 
    try{
 
     const r=
      await fetch(
       path,
-      {cache:'no-store'}
+      {
+       cache:'no-store',
+       headers:{
+        Accept:'application/json'
+       }
+      }
      );
 
     if(!r.ok)
@@ -625,51 +695,86 @@ async function discoverDirect(){
     const arr=
      Array.isArray(j)
       ?j
-      :(j.data||[]);
+      :(j?.data||[]);
 
     const events=
      path.includes('/events')
       ?arr
       :arr.map(x=>({
-       markets:[x]
+       markets:[x],
+       slug:x.slug
       }));
 
     for(const ev of events){
 
-     for(const m of ev.markets||[]){
+     for(
+      const m of
+      ev?.markets||[]
+     ){
 
       const t=tokenPair(m);
+
+      if(!t)
+       continue;
 
       const end=
        m.endDate||
        m.endDateIso||
        ev.endDate;
 
+      const endMs=
+       new Date(end).getTime();
+
       const endTs=
        Math.floor(
-        new Date(end).getTime()/1000
+        endMs/1000
        );
 
+      const active=
+       m.active!==false&&
+       String(m.active)!=='false';
+
       if(
-       t&&
-       Number.isFinite(endTs)&&
        endTs>now&&
-       m.closed!==true&&
-       String(m.active)!=='false'
+       !m.closed&&
+       active
       ){
 
-       market={
-        slug:m.slug||ev.slug||slug,
-        question:m.question||ev.title||slug,
+       const nextMarket={
+        slug:
+         m.slug||
+         ev.slug||
+         slug,
+
+        question:
+         m.question||
+         ev.title||
+         slug,
+
         upToken:t.up,
         downToken:t.down,
+
         endTs
        };
 
-       connectPoly([
-        t.up,
-        t.down
-       ]);
+       const changed=
+        !market||
+        market.slug!==nextMarket.slug;
+
+       market=nextMarket;
+
+       if(changed){
+
+        books.clear();
+
+        connectPoly([
+         t.up,
+         t.down
+        ]);
+
+        comparisonHist.length=0;
+        lastComparisonSnapshot=0;
+       }
 
        return;
       }
@@ -686,7 +791,14 @@ async function discoverDirect(){
 }
 
 
-function setBook(id,bids,asks){
+function setBook(
+ id,
+ bids,
+ asks
+){
+
+ if(!id)
+  return;
 
  books.set(
   String(id),
@@ -721,17 +833,21 @@ function setBook(id,bids,asks){
 }
 
 
-function applyPolyDelta(x,root){
+function applyPolyDelta(
+ x,
+ root
+){
 
  const id=
   String(
-   x.asset_id||
-   x.assetId||
+   x?.asset_id||
+   x?.assetId||
    root||
    ''
   );
 
- if(!id)return;
+ if(!id)
+  return;
 
  const q=
   books.get(id)||{
@@ -741,14 +857,17 @@ function applyPolyDelta(x,root){
   };
 
  const side=
-  String(x.side||'').toUpperCase()==='BUY'
+  String(
+   x?.side||''
+  ).toUpperCase()==='BUY'
    ?q.bids
    :q.asks;
 
- const p=N(x.price);
- const s=N(x.size);
+ const p=N(x?.price);
+ const s=N(x?.size);
 
- if(p<=0)return;
+ if(p<=0)
+  return;
 
  const i=
   side.findIndex(
@@ -782,7 +901,10 @@ function applyPolyDelta(x,root){
 
  q.ts=Date.now();
 
- books.set(id,q);
+ books.set(
+  id,
+  q
+ );
 }
 
 
@@ -794,6 +916,16 @@ function connectPoly(ids){
 
  clearInterval(polyPing);
 
+ polyPing=null;
+
+ const wanted=
+  (ids||[])
+   .map(String)
+   .filter(Boolean);
+
+ if(!wanted.length)
+  return;
+
  polyWS=
   new WebSocket(
    'wss://ws-subscriptions-clob.polymarket.com/ws/market'
@@ -801,20 +933,24 @@ function connectPoly(ids){
 
  polyWS.onopen=()=>{
 
-  polyWS.send(
-   JSON.stringify({
-    assets_ids:ids,
-    type:'market',
-    custom_feature_enabled:true,
-    initial_dump:true
-   })
-  );
+  try{
+
+   polyWS.send(
+    JSON.stringify({
+     assets_ids:wanted,
+     type:'market',
+     custom_feature_enabled:true,
+     initial_dump:true
+    })
+   );
+
+  }catch{}
 
   polyPing=
    setInterval(()=>{
 
     try{
-     polyWS.send('PING');
+     polyWS?.send('PING');
     }catch{}
 
    },10000);
@@ -825,7 +961,9 @@ function connectPoly(ids){
   try{
 
    const raw=
-    JSON.parse(e.data);
+    typeof e.data==='string'
+     ?JSON.parse(e.data)
+     :e.data;
 
    const msgs=
     Array.isArray(raw)
@@ -833,6 +971,9 @@ function connectPoly(ids){
      :[raw];
 
    for(const m of msgs){
+
+    if(!m||typeof m!=='object')
+     continue;
 
     const ev=
      String(
@@ -873,6 +1014,9 @@ function connectPoly(ids){
 
     if(ev==='best_bid_ask'){
 
+     if(!root)
+      continue;
+
      const q=
       books.get(root)||{
        bids:[],
@@ -907,7 +1051,10 @@ function connectPoly(ids){
 
      q.ts=Date.now();
 
-     books.set(root,q);
+     books.set(
+      root,
+      q
+     );
     }
    }
 
@@ -917,10 +1064,15 @@ function connectPoly(ids){
  polyWS.onclose=()=>{
 
   clearInterval(polyPing);
+  polyPing=null;
 
   setTimeout(()=>{
 
-   if(market){
+   if(
+    market&&
+    market.upToken&&
+    market.downToken
+   ){
 
     connectPoly([
      market.upToken,
@@ -934,7 +1086,7 @@ function connectPoly(ids){
  polyWS.onerror=()=>{
 
   try{
-   polyWS.close();
+   polyWS?.close();
   }catch{}
  };
 }
@@ -942,26 +1094,32 @@ function connectPoly(ids){
 
 async function restPoly(token){
 
+ if(!token)
+  return;
+
  try{
 
   const r=
    await fetch(
     `https://clob.polymarket.com/book?token_id=${encodeURIComponent(token)}`,
     {
-     cache:'no-store'
+     cache:'no-store',
+     headers:{
+      Accept:'application/json'
+     }
     }
    );
 
-  if(r.ok){
+  if(!r.ok)
+   return;
 
-   const x=await r.json();
+  const x=await r.json();
 
-   setBook(
-    token,
-    x.bids,
-    x.asks
-   );
-  }
+  setBook(
+   token,
+   x?.bids,
+   x?.asks
+  );
 
  }catch{}
 }
@@ -982,9 +1140,12 @@ function sample(ms){
  ){
 
   if(
-   now-hist[i].ts>=ms
-  )
+   now-
+   hist[i].ts>=ms
+  ){
+
    return hist[i].p;
+  }
  }
 
  return null;
@@ -997,7 +1158,8 @@ function windowReturn(ms){
   binance.last||
   (binance.bid+binance.ask)/2;
 
- if(!p)return 0;
+ if(!p)
+  return 0;
 
  const q=sample(ms);
 
@@ -1063,7 +1225,8 @@ function depthLiquidity(){
   };
  }
 
- const band=p*.0008;
+ const band=
+  p*.0008;
 
  let bidQ=0;
  let askQ=0;
@@ -1221,6 +1384,7 @@ function calculate(){
 
  if(
   !p||
+  !binance.ts||
   now-binance.ts>2500
  ){
 
@@ -1232,6 +1396,12 @@ function calculate(){
    downProbability:.5,
    potential:0,
    edge:0,
+   return1s:0,
+   return3s:0,
+   return5s:0,
+   volatility:0,
+   volRegime:0,
+   polyR1:0,
    components:{}
   };
  }
@@ -1360,7 +1530,8 @@ function calculate(){
 
  const polyMicroDrift=
   clamp(
-   polyMicroProb-marketImplied,
+   polyMicroProb-
+   marketImplied,
    -.25,
    .25
   );
@@ -1392,10 +1563,30 @@ function calculate(){
  while(polyHist.length>2000)
   polyHist.shift();
 
- const polyPrev=
-  polyHist.find(
-   z=>now-z.ts>=1000
-  );
+
+ /* FIX:
+    Find the newest sample that is at least 1 second old.
+    The old code used .find() from the beginning,
+    which selected a very stale sample.
+ */
+
+ let polyPrev=null;
+
+ for(
+  let i=polyHist.length-1;
+  i>=0;
+  i--
+ ){
+
+  if(
+   now-
+   polyHist[i].ts>=1000
+  ){
+
+   polyPrev=polyHist[i];
+   break;
+  }
+ }
 
  const polyR1=
   polyPrev
@@ -1441,10 +1632,12 @@ function calculate(){
 
   for(
    const v of arr.slice(1)
-  )
+  ){
+
    e=
     alpha*v+
     (1-alpha)*e;
+  }
 
   return e;
  };
@@ -1665,7 +1858,8 @@ function calculate(){
    rawUpProbability
   );
 
- const down=1-up;
+ const down=
+  1-up;
 
  const confidence=
   50+
@@ -1748,7 +1942,9 @@ function calculate(){
   Math.abs(polyBidPressure)*12;
 
  return{
+
   price:p,
+
   return1s:r1,
   return3s:r3,
   return5s:r5,
@@ -1773,29 +1969,39 @@ function calculate(){
   volRegime,
 
   components:{
+
    momentum,
    orderFlow,
    polymarketPressure:poly,
    trend,
+
    slopeNorm,
    bookImb,
    flowNorm,
+
    polyMid:marketImplied,
    technicalProb,
    marketImplied,
+
    polySpread,
    polyLiquidity,
+
    emaFast,
    emaSlow,
    rsi,
+
    polyBook,
    polyBidPressure,
+
    polyMicroProb,
    polyMicroDrift,
+
    liquidityZone,
    liquidityBias,
+
    depthSupport:depth.support,
    depthResistance:depth.resistance,
+
    alignment
   },
 
@@ -1849,7 +2055,8 @@ function stableSignal(x){
    :cfg;
 
  const side=
-  x.upProbability>=x.downProbability
+  x.upProbability>=
+  x.downProbability
    ?'UP'
    :'DOWN';
 
@@ -1883,12 +2090,13 @@ function stableSignal(x){
  const a=
   x.components?.alignment||0;
 
- let stage='WATCH';
- let reason=
-  'Waiting for aligned factors';
-
  const key=
   `${side}|${market?.slug||''}`;
+
+ let stage='WATCH';
+
+ let reason=
+  'Waiting for aligned factors';
 
  const directional=
   side==='UP'
@@ -1903,7 +2111,9 @@ function stableSignal(x){
   x.components?.bookImb||0,
   x.components?.polyBidPressure||0
  ].map(
-  v=>Math.sign(v)===directional
+  v=>
+   Math.sign(v)===
+   directional
  );
 
  const agree=
@@ -1911,10 +2121,14 @@ function stableSignal(x){
 
  const bidConfirm=
   side==='UP'
-   ?x.upStats?.bid>
-    x.downStats?.ask*.95
-   :x.downStats?.bid>
-    x.upStats?.ask*.95;
+   ?(
+    N(x.upStats?.bid)>
+    N(x.downStats?.ask)*.95
+   )
+   :(
+    N(x.downStats?.bid)>
+    N(x.upStats?.ask)*.95
+   );
 
  const quality=
   agree>=5&&
@@ -1951,7 +2165,10 @@ function stableSignal(x){
   reason=
    'Last minute protection — no new sniper entry';
 
- }else if(now-binance.ts>1200){
+ }else if(
+  !binance.ts||
+  now-binance.ts>1200
+ ){
 
   stage='WAIT';
 
@@ -1967,15 +2184,19 @@ function stableSignal(x){
 
  }else if(quality){
 
-  if(lastCandidateKey!==key){
+  if(
+   lastCandidateKey!==key
+  ){
 
    candidateSince=now;
    lastCandidateKey=key;
   }
 
+  const elapsed=
+   now-candidateSince;
+
   if(
-   now-candidateSince>=
-   mode.persist
+   elapsed>=mode.persist
   ){
 
    stage='ENTRY';
@@ -1990,8 +2211,7 @@ function stableSignal(x){
    reason=
     `Confirming setup ${Math.max(
      0,
-     mode.persist-
-     (now-candidateSince)
+     mode.persist-elapsed
     )}ms`;
   }
 
@@ -2067,24 +2287,35 @@ function stableSignal(x){
 
  const lockedAsk=
   stage==='ENTRY'
-   ?ask
-   :(signalState.lockedAsk||0);
+   ?N(ask)
+   :N(signalState.lockedAsk);
 
  const newSignal={
   stage,
+
   side:
    stage==='WAIT'
     ?'WAIT'
     :side,
+
   confidence:
    x.confidence||50,
+
   generatedAt:now,
+
   validUntil:valid,
-  potential:x.potential||0,
-  edge,
+
+  potential:
+   x.potential||0,
+
+  edge:N(edge),
+
   reason,
+
   lockedAsk,
+
   mode:selectedMode,
+
   liquidityZone:
    x.components?.liquidityZone||
    'UNKNOWN'
@@ -2106,22 +2337,29 @@ function stableSignal(x){
 
    const h={
     ...newSignal,
+
     marketEnd:
      market?.endTs*1000||0,
-    ask,
-    upProb:x.upProbability,
-    downProb:x.downProbability,
+
+    ask:N(ask),
+
+    upProb:
+     x.upProbability,
+
+    downProb:
+     x.downProbability,
+
     marketKey,
-    slug:market?.slug||''
+
+    slug:
+     market?.slug||''
    };
 
-   if(
-    entryKey(h)!==
-    loggedEntryId
-   ){
+   const id=entryKey(h);
 
-    loggedEntryId=
-     entryKey(h);
+   if(id!==loggedEntryId){
+
+    loggedEntryId=id;
 
     persistEntry(h);
    }
@@ -2152,6 +2390,19 @@ function stableSignal(x){
 function comparisonSnapshot(){
 
  const now=Date.now();
+
+ /*
+   Four snapshots per second were unnecessary.
+   Keep the comparison engine smooth while reducing
+   local memory churn.
+ */
+
+ if(
+  now-lastComparisonSnapshot<250
+ )
+  return;
+
+ lastComparisonSnapshot=now;
 
  const spot=
   binance.bid&&binance.ask
@@ -2187,7 +2438,11 @@ function comparisonSnapshot(){
   downStats.bid||
   0;
 
- if(!spot&&!up&&!down)
+ if(
+  !spot&&
+  !up&&
+  !down
+ )
   return;
 
  comparisonHist.push({
@@ -2218,7 +2473,7 @@ function comparisonChange(
 
  if(
   !cur||
-  !cur[key]
+  !N(cur[key])
  )
   return 0;
 
@@ -2231,21 +2486,21 @@ function comparisonChange(
   i--
  ){
 
+  const row=
+   comparisonHist[i];
+
   if(
-   now-
-   comparisonHist[i].ts>=ms
+   now-row.ts>=ms
   ){
 
-   old=
-    comparisonHist[i];
-
+   old=row;
    break;
   }
  }
 
  if(
   !old||
-  !old[key]
+  !N(old[key])
  )
   return 0;
 
@@ -2306,15 +2561,18 @@ function renderComparison(
 
   const el=$(id);
 
-  if(!el)return;
+  if(!el)
+   return;
+
+  const n=N(v);
 
   el.textContent=
-   fmtPct(v);
+   fmtPct(n);
 
   el.style.color=
-   v>0
+   n>0
     ?'var(--up)'
-    :v<0
+    :n<0
      ?'var(--down)'
      :'var(--muted)';
  };
@@ -2485,7 +2743,7 @@ function renderComparison(
 
 
 /* =========================================================
-   DISPLAY
+   DISPLAY HELPERS
    ========================================================= */
 
 function fmtTime(ms){
@@ -2531,6 +2789,7 @@ function expiryText(){
 function render(){
 
  const x=calculate();
+
  const s=stableSignal(x);
 
  const upB=x.upBook;
@@ -2542,7 +2801,10 @@ function render(){
  const now=Date.now();
 
  comparisonSnapshot();
- renderComparison(ua,da);
+ renderComparison(
+  ua,
+  da
+ );
 
  const secs=
   market
@@ -2755,18 +3017,21 @@ function render(){
 
  if($('upProb'))
   $('upProb').textContent=
-   (x.upProbability*100)
-    .toFixed(1)+'%';
+   (
+    x.upProbability*100
+   ).toFixed(1)+'%';
 
  if($('downProb'))
   $('downProb').textContent=
-   (x.downProbability*100)
-    .toFixed(1)+'%';
+   (
+    x.downProbability*100
+   ).toFixed(1)+'%';
 
  if($('probBarUp'))
   $('probBarUp').style.width=
-   (x.upProbability*100)
-    .toFixed(1)+'%';
+   (
+    x.upProbability*100
+   ).toFixed(1)+'%';
 
  if($('ret1s'))
   $('ret1s').textContent=
@@ -2839,18 +3104,16 @@ function render(){
   $('tradeCount').textContent=
    String(trades.length);
 
+ const avgSpread=
+  (
+   N(ua?.spread)+
+   N(da?.spread)
+  )/2;
+
  if($('bookSpread'))
   $('bookSpread').textContent=
-   (
-    (ua?.spread||0)+
-    (da?.spread||0)
-   )
-    ?cents(
-     (
-      (ua?.spread||0)+
-      (da?.spread||0)
-     )/2
-    )
+   avgSpread
+    ?cents(avgSpread)
     :'—';
 
  if($('bookLiquidity'))
@@ -2938,8 +3201,11 @@ function render(){
   lastDownFlash=now;
  }
 
- lastUpProb=x.upProbability;
- lastDownProb=x.downProbability;
+ lastUpProb=
+  x.upProbability;
+
+ lastDownProb=
+  x.downProbability;
 
  const c=x.components||{};
 
@@ -2952,11 +3218,16 @@ function render(){
  const liveAsk=
   s.side==='UP'
    ?ua?.ask
-   :da?.ask;
+   :s.side==='DOWN'
+    ?da?.ask
+    :0;
 
  if($('sniperBox'))
   $('sniperBox').className=
-   'sniper '+s.stage.toLowerCase();
+   'sniper '+
+   String(
+    s.stage||'WAIT'
+   ).toLowerCase();
 
  if($('sniperText'))
   $('sniperText').textContent=
@@ -2975,7 +3246,9 @@ function render(){
      market?.endTs*1000
     )
    } • signal ${
-    fmtTime(s.generatedAt)
+    fmtTime(
+     s.generatedAt
+    )
    }`;
 
  if($('entryQuality'))
@@ -3041,7 +3314,9 @@ function render(){
     :'WAITING FOR BINANCE LIVE FEED';
 
 
- /* Directional edge */
+ /* =======================================================
+    DIRECTIONAL EDGE
+    ======================================================= */
 
  const buyUp=x.upEdge;
  const buyDown=x.downEdge;
@@ -3049,18 +3324,18 @@ function render(){
  const sellUp=x.upBidEdge;
  const sellDown=x.downBidEdge;
 
- let bestSide=
+ const bestSide=
   buyUp>=buyDown
    ?'UP'
    :'DOWN';
 
- let bestBuy=
+ const bestBuy=
   Math.max(
    buyUp,
    buyDown
   );
 
- let bestSell=
+ const bestSell=
   Math.max(
    sellUp,
    sellDown
@@ -3109,14 +3384,21 @@ function render(){
    ?'UP'
    :'DOWN';
 
- const exitEdge=bestSell;
+ const exitEdge=
+  bestSell;
 
  let action='HOLD';
 
- if(exitEdge>.03)
-  action=`SELL ${exitSide}`;
- else if(bestBuy>.04)
-  action=`HOLD / ADD ${bestSide}`;
+ if(exitEdge>.03){
+
+  action=
+   `SELL ${exitSide}`;
+
+ }else if(bestBuy>.04){
+
+  action=
+   `HOLD / ADD ${bestSide}`;
+ }
 
  if($('positionAction'))
   $('positionAction').textContent=
@@ -3166,7 +3448,9 @@ function render(){
    `UP bid ${cents(ua?.bid)} • DOWN bid ${cents(da?.bid)}`;
 
 
- /* Split */
+ /* =======================================================
+    SPLIT TRADING
+    ======================================================= */
 
  const splitTotal=
   Math.max(
@@ -3204,8 +3488,8 @@ function render(){
  if(tradeMode==='split'){
 
   const spreadCost=
-   (ua?.ask||0)+
-   (da?.ask||0);
+   N(ua?.ask)+
+   N(da?.ask);
 
   if(spreadCost<.995)
    splitDecision=
@@ -3251,7 +3535,9 @@ function render(){
    holdSell;
 
 
- /* Calibration */
+ /* =======================================================
+    CALIBRATION
+    ======================================================= */
 
  if($('calAccuracy'))
   $('calAccuracy').textContent=
@@ -3276,7 +3562,9 @@ function render(){
    );
 
 
- /* Statistics */
+ /* =======================================================
+    STATISTICS
+    ======================================================= */
 
  const resolved=
   storedEntries.filter(
@@ -3384,7 +3672,9 @@ function render(){
     :'—';
 
 
- /* Entry history */
+ /* =======================================================
+    ENTRY HISTORY
+    ======================================================= */
 
  const log=$('entryHistory');
 
@@ -3424,7 +3714,8 @@ function drawBTCChart(){
 
  const c=$('btcChart');
 
- if(!c)return;
+ if(!c)
+  return;
 
  const dpr=
   window.devicePixelRatio||1;
@@ -3435,7 +3726,7 @@ function drawBTCChart(){
  const w=
   Math.max(
    300,
-   rect.width
+   rect.width||300
   );
 
  const h=150;
@@ -3454,6 +3745,9 @@ function drawBTCChart(){
 
  const ctx=
   c.getContext('2d');
+
+ if(!ctx)
+  return;
 
  ctx.setTransform(
   dpr,
@@ -3538,9 +3832,10 @@ function drawBTCChart(){
    (max-min)*
    h;
 
-  i
-   ?ctx.lineTo(x,y)
-   :ctx.moveTo(x,y);
+  if(i)
+   ctx.lineTo(x,y);
+  else
+   ctx.moveTo(x,y);
  });
 
  ctx.lineTo(w,h);
@@ -3565,9 +3860,10 @@ function drawBTCChart(){
    (max-min)*
    h;
 
-  i
-   ?ctx.lineTo(x,y)
-   :ctx.moveTo(x,y);
+  if(i)
+   ctx.lineTo(x,y);
+  else
+   ctx.moveTo(x,y);
  });
 
  ctx.strokeStyle='#35e58a';
@@ -3592,9 +3888,10 @@ function resultFromMarket(m){
   parseArr(
    m?.outcomes
   ).map(
-   x=>String(x)
-    .trim()
-    .toUpperCase()
+   x=>
+    String(x)
+     .trim()
+     .toUpperCase()
   );
 
  const winner=
@@ -3633,13 +3930,13 @@ function resultFromMarket(m){
    Math.max(...prices)>=.98
   ){
 
-   const idx=
+   const winnerIndex=
     prices[0]>prices[1]
      ?0
      :1;
 
    return(
-    outs[idx]||''
+    outs[winnerIndex]||''
    ).includes('DOWN')
     ?'DOWN'
     :'UP';
@@ -3652,20 +3949,27 @@ function resultFromMarket(m){
 
 async function fetchMarketBySlug(slug){
 
- for(const url of [
+ const urls=[
 
   `https://gamma-api.polymarket.com/markets/slug/${encodeURIComponent(slug)}`,
 
   `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}`
 
- ]){
+ ];
+
+ for(const url of urls){
 
   try{
 
    const r=
     await fetch(
      url,
-     {cache:'no-store'}
+     {
+      cache:'no-store',
+      headers:{
+       Accept:'application/json'
+      }
+     }
     );
 
    if(!r.ok)
@@ -3676,7 +3980,7 @@ async function fetchMarketBySlug(slug){
    const m=
     Array.isArray(j)
      ?j[0]
-     :(j.data||[])[0]||j;
+     :(j?.data||[])[0]||j;
 
    if(m)
     return m;
@@ -3696,7 +4000,8 @@ async function loadRecentResults(){
   );
 
  const base=
-  now-now%300;
+  now-
+  now%300;
 
  const arr=[];
 
@@ -3753,7 +4058,8 @@ function renderRecentResults(){
 
  const el=$('recentResults');
 
- if(!el)return;
+ if(!el)
+  return;
 
  el.innerHTML=
   recentResults.length
@@ -3797,14 +4103,13 @@ async function loadCalibration(){
 
  try{
 
+  const raw=
+   localStorage.getItem(
+    'btc5mSniper'
+   )||'{}';
+
   const z=
-   await Promise.resolve(
-    JSON.parse(
-     localStorage.getItem(
-      'btc5mSniper'
-     )||'{}'
-    )
-   );
+   JSON.parse(raw);
 
   sectionVisibility={
    ...sectionVisibility,
@@ -3818,9 +4123,25 @@ async function loadCalibration(){
     ?z.sniperEntries
     :[];
 
-  calibration=
-   z.sniperCalibration||
-   calibration;
+  if(
+   z.sniperCalibration&&
+   typeof z.sniperCalibration==='object'
+  ){
+
+   calibration={
+    bins:{},
+    total:0,
+    correct:0,
+    brierSum:0,
+    ...z.sniperCalibration
+   };
+
+   if(
+    !calibration.bins||
+    typeof calibration.bins!=='object'
+   )
+    calibration.bins={};
+  }
 
   historyEntries.splice(
    0,
@@ -3841,14 +4162,17 @@ async function saveCalibration(){
 
  try{
 
-  await localStorage.setItem(
+  const existing=
+   JSON.parse(
+    localStorage.getItem(
+     'btc5mSniper'
+    )||'{}'
+   );
+
+  localStorage.setItem(
    'btc5mSniper',
    JSON.stringify({
-    ...JSON.parse(
-     localStorage.getItem(
-      'btc5mSniper'
-     )||'{}'
-    ),
+    ...existing,
 
     sniperEntries:
      storedEntries.slice(-200),
@@ -3866,15 +4190,17 @@ async function saveVisibility(){
 
  try{
 
-  await localStorage.setItem(
+  const existing=
+   JSON.parse(
+    localStorage.getItem(
+     'btc5mSniper'
+    )||'{}'
+   );
+
+  localStorage.setItem(
    'btc5mSniper',
    JSON.stringify({
-    ...JSON.parse(
-     localStorage.getItem(
-      'btc5mSniper'
-     )||'{}'
-    ),
-
+    ...existing,
     sectionVisibility
    })
   );
@@ -3890,9 +4216,10 @@ function probabilityBin(p){
   Math.min(
    9,
    Math.floor(
-    Math.max(
+    clamp(
+     N(p),
      0,
-     Math.min(.999,p)
+     .999
     )/.1
    )
   )
@@ -3914,7 +4241,8 @@ function calibratedProbability(raw){
   return raw;
 
  const empirical=
-  b.hits/b.n;
+  b.hits/
+  b.n;
 
  const w=
   Math.min(
@@ -3962,35 +4290,10 @@ async function settlePending(){
 
   try{
 
-   let m=null;
-
-   for(const url of [
-
-    `https://gamma-api.polymarket.com/markets/slug/${encodeURIComponent(e.slug)}`,
-
-    `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(e.slug)}`
-
-   ]){
-
-    const r=
-     await fetch(
-      url,
-      {cache:'no-store'}
-     );
-
-    if(!r.ok)
-     continue;
-
-    const j=await r.json();
-
-    m=
-     Array.isArray(j)
-      ?j[0]
-      :(j.data||[])[0]||j;
-
-    if(m)
-     break;
-   }
+   const m=
+    await fetchMarketBySlug(
+     e.slug
+    );
 
    if(!m)
     continue;
@@ -4008,8 +4311,8 @@ async function settlePending(){
 
    const prob=
     e.side==='UP'
-     ?e.upProb
-     :e.downProb;
+     ?N(e.upProb)
+     :N(e.downProb);
 
    const bin=
     probabilityBin(prob);
@@ -4073,23 +4376,34 @@ async function persistEntry(h){
 
  const row={
   id,
+
   stage:h.stage,
   side:h.side,
+
   confidence:h.confidence,
-  upProb:h.upProb,
-  downProb:h.downProb,
+
+  upProb:N(h.upProb),
+  downProb:N(h.downProb),
+
   generatedAt:h.generatedAt,
   marketEnd:h.marketEnd,
-  slug:market?.slug||'',
+
+  slug:
+   h.slug||
+   market?.slug||
+   '',
+
   marketKey:
    h.marketKey||
    market?.slug||
    String(
     market?.endTs||''
    ),
-  ask:h.ask,
-  potential:h.potential,
-  edge:h.edge,
+
+  ask:N(h.ask),
+  potential:N(h.potential),
+  edge:N(h.edge),
+
   result:null,
   correct:null
  };
@@ -4111,6 +4425,8 @@ async function persistEntry(h){
    MARKET / UI CONTROLS
    ========================================================= */
 
+let marketDiscoveryPromise=null;
+
 async function ensureMarket(){
 
  if(
@@ -4118,19 +4434,40 @@ async function ensureMarket(){
   market.endTs>
    Date.now()/1000+2
  )
-  return;
+  return market;
 
- try{
+ if(marketDiscoveryPromise)
+  return marketDiscoveryPromise;
 
-  await discoverDirect();
+ marketDiscoveryPromise=
+  (async()=>{
 
- }catch(e){
+   try{
 
-  if($('status'))
-   $('status').textContent=
-    'Market discovery: '+
-    e.message;
- }
+    await discoverDirect();
+
+    return market;
+
+   }catch(e){
+
+    if($('status'))
+     $('status').textContent=
+      'Market discovery: '+
+      (
+       e?.message||
+       'failed'
+      );
+
+    return null;
+
+   }finally{
+
+    marketDiscoveryPromise=null;
+   }
+
+  })();
+
+ return marketDiscoveryPromise;
 }
 
 
@@ -4138,6 +4475,24 @@ if($('refresh'))
  $('refresh').onclick=async()=>{
 
   market=null;
+
+  books.clear();
+
+  comparisonHist.length=0;
+
+  lastComparisonSnapshot=0;
+
+  signalState={
+   stage:'WAIT',
+   side:'WAIT',
+   confidence:50,
+   generatedAt:Date.now(),
+   validUntil:Date.now()+1500,
+   potential:0,
+   edge:0,
+   lockedAsk:0,
+   reason:'Refreshing market'
+  };
 
   await ensureMarket();
 
@@ -4160,7 +4515,8 @@ if($('statsToggle'))
   const e=$('statsDetails');
   const b=$('statsToggle');
 
-  if(!e||!b)return;
+  if(!e||!b)
+   return;
 
   e.classList.toggle('show');
 
@@ -4174,7 +4530,11 @@ if($('statsToggle'))
 if($('modeSelect'))
  $('modeSelect').onchange=e=>{
 
-  selectedMode=e.target.value;
+  selectedMode=
+   e.target.value;
+
+  candidateSince=0;
+  lastCandidateKey='';
 
   signalState={
    stage:'WATCH',
@@ -4184,9 +4544,11 @@ if($('modeSelect'))
    validUntil:Date.now()+1000,
    potential:0,
    edge:0,
-   reason:'Mode changed',
-   lockedAsk:0
+   lockedAsk:0,
+   reason:'Mode changed'
   };
+
+  render();
  };
 
 
@@ -4202,7 +4564,8 @@ document
 
    const el=$(target);
 
-   if(!el)return;
+   if(!el)
+    return;
 
    el.classList.toggle(
     'sectionHidden'
@@ -4279,15 +4642,22 @@ function applyVisibility(){
 
  setInterval(()=>{
 
-  ensureMarket();
-
-  render();
+  ensureMarket()
+   .then(()=>{
+    render();
+   })
+   .catch(()=>{
+    render();
+   });
 
  },250);
 
  setInterval(()=>{
 
-  if(market){
+  if(
+   market?.upToken&&
+   market?.downToken
+  ){
 
    restPoly(
     market.upToken
