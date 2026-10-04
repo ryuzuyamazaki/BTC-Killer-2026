@@ -57,7 +57,7 @@ function polyBookPressure(upB,downB){
 }
 function calculate(){
  const now=Date.now(),p=binance.last||(binance.bid+binance.ask)/2;
- if(!p||now-binance.ts>2500)return{status:'warming',signal:'WAIT',confidence:50,upProbability:.5,downProbability:.5,potential:0,components:{}};
+ if(!p||now-binance.ts>2500)return{status:'warming',signal:'WAIT',confidence:50,upProbability:.5,downProbability:.5,potential:0,edge:0,components:{}};
  const p1=sample(1000),p3=sample(3000),p5=sample(5000);
  const r1=p1?p/p1-1:0,r3=p3?p/p3-1:0,r5=p5?p/p5-1:0;
  const depth=depthLiquidity(),totalBook=binance.bidSize+binance.askSize,bookImb=totalBook?(binance.bidSize-binance.askSize)/totalBook:0;
@@ -86,7 +86,7 @@ function calculate(){
  const orderFlow=clamp(bookImb*.16+flowNorm*.18+depth.imb*.08,-.38,.38);
  const trend=clamp(trendNorm*.09+rsiNorm*.045,-.14,.14);
  const poly=clamp(polyPressure*.16+polyBook*.08+polyBidPressure*.07+polyR1*1.8+polyMicroDrift*.20,-.16,.16);
- const liquidityZone=depth.zone, liquidityBias=clamp(depth.imb*.10,-.10,.10);
+ const liquidityZone=depth.zone,liquidityBias=clamp(depth.imb*.10,-.10,.10);
  const technicalScore=clamp(momentum+orderFlow+trend+liquidityBias,-.85,.85);
  const technicalProb=1/(1+Math.exp(-technicalScore*4.6));
  const marketDriftProb=clamp(.5+polyR1*2.8+polyMicroDrift*.8,-.15+.5,.85);
@@ -135,7 +135,17 @@ function fmtTime(ms){return ms?new Date(ms).toLocaleTimeString([], {hour:'2-digi
 function expiryText(){if(!market)return'EXP —';const s=Math.max(0,Math.ceil(market.endTs-Date.now()/1000));return `5M EXP ${s}s • ${fmtTime(market.endTs*1000)}`}
 function render(){
  const x=calculate(),s=stableSignal(x),upB=x.upBook,downB=x.downBook,ua=x.upStats,da=x.downStats,now=Date.now(),secs=market?Math.max(0,Math.ceil(market.endTs-now/1000)):0;
- if(market){$('marketTitle').textContent=market.question||market.slug;$('openMarket').href=`https://polymarket.com/event/${encodeURIComponent(market.slug||'')}`;$('timeLeft').textContent=secs+'s';$('expiryTime').textContent=fmtTime(market.endTs*1000);$('expiryTime').classList.toggle('expiry-last',secs<=60);document.querySelectorAll('.expiryBadge').forEach(e=>{e.textContent=expiryText();e.classList.toggle('expiry-last',secs<=60)});$('timeLeft').parentElement.classList.toggle('expiry-last',secs<=60);$('expiryEntry2').classList.toggle('expiry-last',secs<=60);$('entryTimeframe').classList.toggle('expiry-last',secs<=60)}
+ if(market){
+  $('marketTitle').textContent=market.question||market.slug;
+  $('openMarket').href=`https://polymarket.com/event/${encodeURIComponent(market.slug||'')}`;
+  $('timeLeft').textContent=secs+'s';
+  $('expiryTime').textContent=fmtTime(market.endTs*1000);
+  $('expiryTime').classList.toggle('expiry-last',secs<=60);
+  document.querySelectorAll('.expiryBadge').forEach(e=>{e.textContent=expiryText();e.classList.toggle('expiry-last',secs<=60)});
+  $('timeLeft').parentElement.classList.toggle('expiry-last',secs<=60);
+  if($('expiryEntry2'))$('expiryEntry2').classList.toggle('expiry-last',secs<=60);
+  if($('entryTimeframe'))$('entryTimeframe').classList.toggle('expiry-last',secs<=60);
+ }
  $('spotPrice').textContent=(binance.bid&&binance.ask)?((binance.bid+binance.ask)/2).toFixed(2):(x.price?x.price.toFixed(2):'—');$('detailBid').textContent=binance.bid?binance.bid.toFixed(2):'—';$('detailAsk').textContent=binance.ask?binance.ask.toFixed(2):'—';$('detailDepth').textContent=`${binance.bids.length}/${binance.asks.length}`;$('detailFeed').textContent=binance.ts?Math.max(0,now-binance.ts)+'ms':'—';$('lastPrice').textContent=binance.last?binance.last.toFixed(2):'—';$('spotSignal').textContent=x.signal||'WAIT';$('binanceBid').textContent=binance.bid?binance.bid.toFixed(2):'—';$('binanceAsk').textContent=binance.ask?binance.ask.toFixed(2):'—';$('binanceFeed').textContent=binance.ts?`${Math.max(0,now-binance.ts)}ms`:'—';
  $('upAsk').textContent=ua?.ask?cents(ua.ask):'—';$('downAsk').textContent=da?.ask?cents(da.ask):'—';$('upBid').textContent=ua?.bid?cents(ua.bid):'—';$('downBid').textContent=da?.bid?cents(da.bid):'—';$('upSize').textContent=ua?.askSize?`${ua.askSize.toFixed(2)} ask shares`:'—';$('downSize').textContent=da?.askSize?`${da.askSize.toFixed(2)} ask shares`:'—';
  const ages=[upB?.ts,downB?.ts].filter(Boolean);$('bookAge').textContent=ages.length?Math.max(0,now-Math.max(...ages))+'ms':'—';$('feedState').textContent=(upB&&downB)?'LIVE':'WAITING';
