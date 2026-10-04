@@ -1864,3 +1864,169 @@ footer button{
     font-size: 28px !important;
   }
 }
+
+/* =========================================================
+   BTC KILLER — LARGE DESKTOP TEXT MODE
+   ========================================================= */
+
+@media (min-width: 801px) {
+
+  body {
+    font-size: 15px !important;
+  }
+
+  .brand h1 {
+    font-size: 21px !important;
+  }
+
+  .brand p {
+    font-size: 12px !important;
+  }
+
+  .connection {
+    font-size: 11px !important;
+  }
+
+  button,
+  select,
+  .modeLine select,
+  .panelHead select {
+    font-size: 12px !important;
+    padding: 10px 13px !important;
+  }
+
+  .panelHead h2 {
+    font-size: 15px !important;
+  }
+
+  .panelHead > span {
+    font-size: 11px !important;
+  }
+
+  .hero label,
+  .priceHero label {
+    font-size: 11px !important;
+  }
+
+  .hero h2 {
+    font-size: 25px !important;
+  }
+
+  .heroSub {
+    font-size: 11px !important;
+  }
+
+  .priceHero strong {
+    font-size: 42px !important;
+  }
+
+  .probCard b,
+  .bookCard > b {
+    font-size: 30px !important;
+  }
+
+  .probCard small,
+  .bookCard small {
+    font-size: 12px !important;
+  }
+
+  .factorRow,
+  .diagGrid,
+  .detailGrid {
+    font-size: 13px !important;
+  }
+
+  .factorRow span,
+  .diagCard span,
+  .detailGrid span {
+    font-size: 11px !important;
+  }
+
+  .factorRow b,
+  .diagCard b,
+  .detailGrid b {
+    font-size: 16px !important;
+  }
+
+  /* SNIPER ENTRY */
+  .sniperMain small {
+    font-size: 12px !important;
+  }
+
+  .sniperPanel .sniperMain strong {
+    font-size: 40px !important;
+  }
+
+  .sniperReason span {
+    font-size: 14px !important;
+  }
+
+  .sniperPanel .entryTile span {
+    font-size: 12px !important;
+  }
+
+  .sniperPanel .entryTile b {
+    font-size: 26px !important;
+  }
+
+  .sniperPanel .stageCard b,
+  .sniperPanel .directionCard b {
+    font-size: 31px !important;
+  }
+
+  .sniperPanel .qualityCard b {
+    font-size: 18px !important;
+  }
+
+  /* EDGE / SPLIT */
+  .edgeGrid b,
+  .splitGrid b {
+    font-size: 18px !important;
+  }
+
+  .edgeGrid small,
+  .splitGrid small {
+    font-size: 12px !important;
+  }
+
+  .modeLine {
+    font-size: 13px !important;
+  }
+
+  /* STATS */
+  .statCard b {
+    font-size: 21px !important;
+  }
+
+  .statCard span,
+  .statCard small {
+    font-size: 11px !important;
+  }
+
+  /* HISTORY / RESULTS */
+  .historyRow {
+    font-size: 13px !important;
+  }
+
+  .historyRow b {
+    font-size: 15px !important;
+  }
+
+  .resultCard {
+    font-size: 13px !important;
+  }
+
+  .resultCard b {
+    font-size: 17px !important;
+  }
+
+  /* COUNTDOWN */
+  .countdown strong {
+    font-size: 38px !important;
+  }
+
+  /* FOOTER */
+  footer {
+    font-size: 11px !important;
+  }
+}
