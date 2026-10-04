@@ -1391,3 +1391,123 @@ footer button{
     transition-duration:.01ms!important;
   }
 }
+/* =========================================================
+   PREMIUM LIVE SNIPER ENTRY
+   ========================================================= */
+
+.sniperPanel{
+  position:relative;
+  overflow:hidden;
+}
+
+.sniperPanel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(157,124,255,.07),
+      transparent 42%
+    );
+}
+
+.sniper{
+  position:relative;
+  overflow:hidden;
+  min-height:112px;
+  padding:17px 18px;
+  border-radius:14px;
+  background:
+    linear-gradient(135deg,#0b1119 0%,#0a0f16 55%,#0d141d 100%);
+  border:1px solid #263241;
+  transition:
+    border-color .25s ease,
+    box-shadow .25s ease,
+    background .25s ease,
+    transform .2s ease;
+}
+
+.sniper::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:3px;
+  height:100%;
+  background:#526174;
+  opacity:.8;
+  transition:.25s ease;
+}
+
+.sniperMain{
+  position:relative;
+  z-index:2;
+}
+
+.sniperMain small{
+  display:block;
+  color:#68778a;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.sniper strong{
+  display:block;
+  margin-top:5px;
+  font-size:30px;
+  line-height:1;
+  letter-spacing:-.03em;
+  font-weight:950;
+  color:#e8edf4;
+  font-variant-numeric:tabular-nums;
+}
+
+.sniperReason{
+  position:relative;
+  z-index:2;
+  max-width:50%;
+  color:#8491a2;
+  font-size:9px;
+  line-height:1.55;
+  text-align:right;
+}
+
+.sniperReason span{
+  display:block;
+}
+
+
+/* WATCH */
+
+.sniper.watch{
+  border-color:#293544;
+  box-shadow:
+    inset 0 0 30px rgba(82,97,116,.04);
+}
+
+.sniper.watch::after{
+  background:#68778a;
+}
+
+.sniper.watch strong{
+  color:#b8c2cf;
+}
+
+
+/* SETUP */
+
+.sniper.setup{
+  border-color:#806a2e;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(243,198,77,.075),
+      #0a1017 55%
+    );
+  box-shadow:
+    0 0 0 1px rgba(243,198,77,.06),
+    0 0 28px rgba(243,198,77,.10);
+  animation
