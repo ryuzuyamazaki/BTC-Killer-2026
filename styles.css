@@ -49,7 +49,10 @@ select{
   cursor:pointer;
 }
 
-/* ---------- TOP BAR ---------- */
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
 
 .topbar{
   position:sticky;
@@ -144,7 +147,10 @@ select{
   background:var(--gold);
 }
 
-/* ---------- CONTROLS ---------- */
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
 
 button,
 .modeLine select,
@@ -180,7 +186,10 @@ select:focus-visible{
   outline-offset:2px;
 }
 
-/* ---------- MAIN GRID ---------- */
+
+/* =========================================================
+   MAIN GRID
+   ========================================================= */
 
 main{
   width:min(1480px,calc(100% - 36px));
@@ -235,7 +244,10 @@ main{
   grid-column:span 8;
 }
 
-/* ---------- HEADERS ---------- */
+
+/* =========================================================
+   HEADERS
+   ========================================================= */
 
 .panelHead{
   display:flex;
@@ -262,7 +274,10 @@ main{
   max-width:100%;
 }
 
-/* ---------- HERO ---------- */
+
+/* =========================================================
+   HERO
+   ========================================================= */
 
 .heroMain{
   display:flex;
@@ -371,7 +386,10 @@ main{
   border-color:#71303a!important;
 }
 
-/* ---------- PRICE ---------- */
+
+/* =========================================================
+   PRICE
+   ========================================================= */
 
 .spotPair{
   color:var(--muted);
@@ -413,7 +431,10 @@ main{
   white-space:nowrap;
 }
 
-/* ---------- CHART ---------- */
+
+/* =========================================================
+   CHART
+   ========================================================= */
 
 .chartMeta{
   display:flex;
@@ -437,7 +458,10 @@ main{
   background:linear-gradient(180deg,#0c121a,#0b1017);
 }
 
-/* ---------- PROBABILITY ---------- */
+
+/* =========================================================
+   PROBABILITY
+   ========================================================= */
 
 .probCards{
   display:grid;
@@ -540,7 +564,10 @@ main{
   }
 }
 
-/* ---------- FACTORS ---------- */
+
+/* =========================================================
+   FACTORS
+   ========================================================= */
 
 .factorRow,
 .diagGrid,
@@ -581,7 +608,10 @@ main{
   font-variant-numeric:tabular-nums;
 }
 
-/* ---------- ORDER BOOK ---------- */
+
+/* =========================================================
+   ORDER BOOK
+   ========================================================= */
 
 .bookGrid{
   display:grid;
@@ -665,61 +695,211 @@ main{
   white-space:nowrap;
 }
 
-/* ---------- SNIPER ---------- */
+
+/* =========================================================
+   SNIPER ENTRY
+   ========================================================= */
+
+.sniperPanel{
+  position:relative;
+  overflow:hidden;
+}
+
+.sniperPanel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(157,124,255,.07),
+      transparent 42%
+    );
+}
 
 .sniper{
+  position:relative;
+  overflow:hidden;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:15px;
+  gap:16px;
   min-width:0;
-  padding:16px;
-  border-radius:13px;
-  border:1px solid #293443;
-  background:#0a1017;
+  min-height:112px;
+  padding:17px 18px;
+  border-radius:14px;
+  background:linear-gradient(
+    135deg,
+    #0b1119 0%,
+    #0a0f16 55%,
+    #0d141d 100%
+  );
+  border:1px solid #263241;
   transition:
-    border-color .2s ease,
-    box-shadow .2s ease,
-    background .2s ease;
+    border-color .25s ease,
+    box-shadow .25s ease,
+    background .25s ease,
+    transform .2s ease;
+}
+
+.sniper::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  width:3px;
+  height:100%;
+  background:#526174;
+  opacity:.8;
+  transition:.25s ease;
+}
+
+.sniperMain{
+  position:relative;
+  z-index:2;
+  min-width:0;
+}
+
+.sniperMain small{
+  display:block;
+  color:#68778a;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.14em;
 }
 
 .sniper strong{
   display:block;
-  font-size:24px;
-  margin-top:3px;
-}
-
-.sniper small{
-  color:#6f7c8c;
-  font-size:8px;
-  font-weight:800;
-  letter-spacing:.1em;
+  margin-top:5px;
+  font-size:30px;
+  line-height:1;
+  letter-spacing:-.03em;
+  font-weight:950;
+  color:#e8edf4;
+  font-variant-numeric:tabular-nums;
 }
 
 .sniperReason{
-  max-width:48%;
-  text-align:right;
-  color:#8c98a7;
+  position:relative;
+  z-index:2;
+  max-width:50%;
+  color:#8491a2;
   font-size:9px;
-  line-height:1.5;
+  line-height:1.55;
+  text-align:right;
   overflow-wrap:anywhere;
 }
 
-.sniper.setup{
-  border-color:var(--gold);
-  box-shadow:0 0 18px #f3c64d22;
+.sniperReason span{
+  display:block;
 }
 
+
+/* WATCH */
+
+.sniper.watch{
+  border-color:#293544;
+  box-shadow:
+    inset 0 0 30px rgba(82,97,116,.04);
+}
+
+.sniper.watch::after{
+  background:#68778a;
+}
+
+.sniper.watch strong{
+  color:#b8c2cf;
+}
+
+
+/* SETUP */
+
+.sniper.setup{
+  border-color:#806a2e;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(243,198,77,.075),
+      #0a1017 55%
+    );
+  box-shadow:
+    0 0 0 1px rgba(243,198,77,.06),
+    0 0 28px rgba(243,198,77,.10);
+  animation:sniperSetupPulse 2.2s ease-in-out infinite;
+}
+
+.sniper.setup::after{
+  background:var(--gold);
+  box-shadow:0 0 14px rgba(243,198,77,.7);
+}
+
+.sniper.setup strong{
+  color:var(--gold);
+}
+
+@keyframes sniperSetupPulse{
+  0%,100%{
+    box-shadow:
+      0 0 0 1px rgba(243,198,77,.05),
+      0 0 20px rgba(243,198,77,.07);
+  }
+
+  50%{
+    box-shadow:
+      0 0 0 1px rgba(243,198,77,.10),
+      0 0 32px rgba(243,198,77,.15);
+  }
+}
+
+
+/* ENTRY */
+
 .sniper.entry{
-  border-color:var(--up);
-  box-shadow:0 0 22px #35e58a2a;
+  border-color:rgba(53,229,138,.75);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(53,229,138,.10),
+      #09130f 50%,
+      #0a1017 100%
+    );
+  box-shadow:
+    0 0 0 1px rgba(53,229,138,.08),
+    0 0 32px rgba(53,229,138,.16);
+  animation:sniperEntryPulse 1.45s ease-in-out infinite;
+}
+
+.sniper.entry::after{
+  background:var(--up);
+  box-shadow:
+    0 0 12px rgba(53,229,138,.9),
+    0 0 25px rgba(53,229,138,.45);
 }
 
 .sniper.entry strong{
   color:var(--up);
+  text-shadow:0 0 16px rgba(53,229,138,.25);
 }
 
-/* ---------- ENTRY ---------- */
+@keyframes sniperEntryPulse{
+  0%,100%{
+    box-shadow:
+      0 0 0 1px rgba(53,229,138,.07),
+      0 0 22px rgba(53,229,138,.10);
+  }
+
+  50%{
+    box-shadow:
+      0 0 0 1px rgba(53,229,138,.14),
+      0 0 38px rgba(53,229,138,.22);
+  }
+}
+
+
+/* =========================================================
+   ENTRY INFORMATION TILES
+   ========================================================= */
 
 .entryGrid{
   display:grid;
@@ -729,45 +909,154 @@ main{
 }
 
 .entryTile{
+  position:relative;
   min-width:0;
-  background:#0a1017;
-  border:1px solid #1c2632;
+  overflow:hidden;
+  background:
+    linear-gradient(145deg,#0c121a,#090e15);
+  border:1px solid #202b38;
   border-radius:9px;
   padding:10px;
+  transition:
+    border-color .2s ease,
+    transform .2s ease,
+    background .2s ease,
+    box-shadow .2s ease;
+}
+
+.entryTile:hover{
+  transform:translateY(-1px);
+  border-color:#354456;
 }
 
 .entryTile span{
   display:block;
   color:#6f7c8c;
-  font-size:8px;
+  font-size:7px;
   font-weight:900;
+  letter-spacing:.1em;
 }
 
 .entryTile b{
   display:block;
   margin-top:5px;
-  font-size:15px;
+  font-size:16px;
+  line-height:1.15;
   overflow-wrap:anywhere;
   font-variant-numeric:tabular-nums;
 }
 
+
+/* STAGE */
+
+.stageCard{
+  border-color:#3a3220;
+}
+
 .stageCard b{
-  color:#f3c64d;
+  color:var(--gold);
+  font-size:20px;
+}
+
+
+/* DIRECTION */
+
+.directionCard{
+  border-color:#28323e;
 }
 
 .directionCard b{
-  font-size:17px;
+  font-size:20px;
+  letter-spacing:.04em;
 }
+
+
+/* LIVE ASK */
+
+.askCard{
+  border-color:#26333f;
+}
+
+.askCard b{
+  color:#f5f7fa;
+  font-size:18px;
+}
+
+
+/* QUALITY */
+
+.qualityCard{
+  border-color:#332f20;
+}
+
+.qualityCard b{
+  color:var(--gold);
+  font-size:12px;
+  letter-spacing:.03em;
+}
+
+
+/*
+  .sniper and .entryGrid are siblings,
+  so target the entry cards through the panel.
+*/
+
+.sniperPanel:has(.sniper.entry) .qualityCard{
+  border-color:#205b3d;
+  box-shadow:inset 0 0 18px rgba(53,229,138,.04);
+}
+
+.sniperPanel:has(.sniper.entry) .qualityCard b{
+  color:var(--up);
+}
+
+.sniperPanel:has(.sniper.setup) .qualityCard{
+  border-color:#554721;
+}
+
+.sniperPanel:has(.sniper.setup) .qualityCard b{
+  color:var(--gold);
+}
+
+
+/* DIRECTION COLORS */
 
 .upText{
   color:var(--up)!important;
+  text-shadow:0 0 12px rgba(53,229,138,.15);
 }
 
 .downText{
   color:var(--down)!important;
+  text-shadow:0 0 12px rgba(255,89,103,.15);
 }
 
-/* ---------- EDGE / SPLIT ---------- */
+
+/* LIVE ASK FLASH */
+
+@keyframes askFlash{
+  0%{
+    background:#15212b;
+  }
+
+  45%{
+    background:#213142;
+    box-shadow:0 0 20px rgba(255,255,255,.10);
+  }
+
+  100%{
+    background:transparent;
+  }
+}
+
+.askChanged{
+  animation:askFlash .45s ease;
+}
+
+
+/* =========================================================
+   EDGE / SPLIT
+   ========================================================= */
 
 .edgeGrid,
 .splitGrid{
@@ -817,7 +1106,10 @@ main{
   max-width:170px;
 }
 
-/* ---------- STATS ---------- */
+
+/* =========================================================
+   STATS
+   ========================================================= */
 
 .hiddenStats{
   display:none;
@@ -851,7 +1143,10 @@ main{
   font-variant-numeric:tabular-nums;
 }
 
-/* ---------- HISTORY ---------- */
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
 
 .historyRow{
   display:grid;
@@ -898,7 +1193,10 @@ main{
   box-shadow:0 0 10px #ff596766;
 }
 
-/* ---------- UTILITY ---------- */
+
+/* =========================================================
+   UTILITY
+   ========================================================= */
 
 .sectionHidden{
   display:none!important;
@@ -924,6 +1222,11 @@ main{
   color:var(--muted);
 }
 
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
 footer{
   width:min(1480px,calc(100% - 36px));
   margin:0 auto 20px;
@@ -939,7 +1242,10 @@ footer button{
   padding:5px 8px;
 }
 
-/* ---------- TABLET ---------- */
+
+/* =========================================================
+   TABLET
+   ========================================================= */
 
 @media(max-width:1100px){
 
@@ -975,7 +1281,10 @@ footer button{
   }
 }
 
-/* ---------- SMALL TABLET ---------- */
+
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
 
 @media(max-width:800px){
 
@@ -1010,7 +1319,10 @@ footer button{
   }
 }
 
-/* ---------- MOBILE ---------- */
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media(max-width:650px){
 
@@ -1225,19 +1537,24 @@ footer button{
     font-size:10px;
   }
 
+
+  /* SNIPER MOBILE */
+
   .sniper{
     display:block;
-    padding:12px;
+    min-height:100px;
+    padding:14px;
   }
 
   .sniper strong{
-    font-size:22px;
+    font-size:25px;
   }
 
   .sniperReason{
     max-width:none;
+    margin-top:9px;
     text-align:left;
-    margin-top:8px;
+    font-size:8px;
     line-height:1.45;
   }
 
@@ -1248,17 +1565,32 @@ footer button{
   }
 
   .entryTile{
-    padding:8px;
+    padding:9px;
+  }
+
+  .entryTile span{
+    font-size:7px;
   }
 
   .entryTile b{
-    font-size:13px;
+    font-size:14px;
   }
 
   .stageCard b,
   .directionCard b{
+    font-size:18px;
+  }
+
+  .askCard b{
     font-size:17px;
   }
+
+  .qualityCard b{
+    font-size:11px;
+  }
+
+
+  /* EDGE / SPLIT */
 
   .edgeGrid,
   .splitGrid{
@@ -1288,6 +1620,9 @@ footer button{
     max-width:140px;
   }
 
+
+  /* STATS */
+
   .statsGrid{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:6px;
@@ -1301,6 +1636,9 @@ footer button{
     font-size:15px;
   }
 
+
+  /* HISTORY */
+
   .historyRow{
     grid-template-columns:1fr;
     gap:3px;
@@ -1310,6 +1648,9 @@ footer button{
   .recentResults{
     gap:7px;
   }
+
+
+  /* FOOTER */
 
   footer{
     width:calc(100% - 16px);
@@ -1325,7 +1666,10 @@ footer button{
   }
 }
 
-/* ---------- VERY SMALL PHONES ---------- */
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
 
 @media(max-width:380px){
 
@@ -1378,7 +1722,10 @@ footer button{
   }
 }
 
-/* ---------- REDUCE MOTION ---------- */
+
+/* =========================================================
+   REDUCE MOTION
+   ========================================================= */
 
 @media(prefers-reduced-motion:reduce){
 
@@ -1389,388 +1736,6 @@ footer button{
     animation-duration:.01ms!important;
     animation-iteration-count:1!important;
     transition-duration:.01ms!important;
-  }
-}
-/* =========================================================
-   PREMIUM LIVE SNIPER ENTRY
-   ========================================================= */
-
-.sniperPanel{
-  position:relative;
-  overflow:hidden;
-}
-
-.sniperPanel::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(157,124,255,.07),
-      transparent 42%
-    );
-}
-
-.sniper{
-  position:relative;
-  overflow:hidden;
-  min-height:112px;
-  padding:17px 18px;
-  border-radius:14px;
-  background:
-    linear-gradient(135deg,#0b1119 0%,#0a0f16 55%,#0d141d 100%);
-  border:1px solid #263241;
-  transition:
-    border-color .25s ease,
-    box-shadow .25s ease,
-    background .25s ease,
-    transform .2s ease;
-}
-
-.sniper::after{
-  content:"";
-  position:absolute;
-  left:0;
-  top:0;
-  width:3px;
-  height:100%;
-  background:#526174;
-  opacity:.8;
-  transition:.25s ease;
-}
-
-.sniperMain{
-  position:relative;
-  z-index:2;
-}
-
-.sniperMain small{
-  display:block;
-  color:#68778a;
-  font-size:8px;
-  font-weight:900;
-  letter-spacing:.14em;
-}
-
-.sniper strong{
-  display:block;
-  margin-top:5px;
-  font-size:30px;
-  line-height:1;
-  letter-spacing:-.03em;
-  font-weight:950;
-  color:#e8edf4;
-  font-variant-numeric:tabular-nums;
-}
-
-.sniperReason{
-  position:relative;
-  z-index:2;
-  max-width:50%;
-  color:#8491a2;
-  font-size:9px;
-  line-height:1.55;
-  text-align:right;
-}
-
-.sniperReason span{
-  display:block;
-}
-
-
-/* WATCH */
-
-.sniper.watch{
-  border-color:#293544;
-  box-shadow:
-    inset 0 0 30px rgba(82,97,116,.04);
-}
-
-.sniper.watch::after{
-  background:#68778a;
-}
-
-.sniper.watch strong{
-  color:#b8c2cf;
-}
-
-
-/* SETUP */
-
-.sniper.setup{
-  border-color:#806a2e;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(243,198,77,.075),
-      #0a1017 55%
-    );
-  box-shadow:
-    0 0 0 1px rgba(243,198,77,.06),
-    0 0 28px rgba(243,198,77,.10);
-  animation:sniperSetupPulse 2.2s ease-in-out infinite;
-}
-
-.sniper.setup::after{
-  background:var(--gold);
-  box-shadow:0 0 14px rgba(243,198,77,.7);
-}
-
-.sniper.setup strong{
-  color:var(--gold);
-}
-
-@keyframes sniperSetupPulse{
-  0%,100%{
-    box-shadow:
-      0 0 0 1px rgba(243,198,77,.05),
-      0 0 20px rgba(243,198,77,.07);
-  }
-  50%{
-    box-shadow:
-      0 0 0 1px rgba(243,198,77,.10),
-      0 0 32px rgba(243,198,77,.15);
-  }
-}
-
-
-/* ENTRY */
-
-.sniper.entry{
-  border-color:rgba(53,229,138,.75);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(53,229,138,.10),
-      #09130f 50%,
-      #0a1017 100%
-    );
-  box-shadow:
-    0 0 0 1px rgba(53,229,138,.08),
-    0 0 32px rgba(53,229,138,.16);
-  animation:sniperEntryPulse 1.45s ease-in-out infinite;
-}
-
-.sniper.entry::after{
-  background:var(--up);
-  box-shadow:
-    0 0 12px rgba(53,229,138,.9),
-    0 0 25px rgba(53,229,138,.45);
-}
-
-.sniper.entry strong{
-  color:var(--up);
-  text-shadow:0 0 16px rgba(53,229,138,.25);
-}
-
-@keyframes sniperEntryPulse{
-  0%,100%{
-    box-shadow:
-      0 0 0 1px rgba(53,229,138,.07),
-      0 0 22px rgba(53,229,138,.10);
-  }
-  50%{
-    box-shadow:
-      0 0 0 1px rgba(53,229,138,.14),
-      0 0 38px rgba(53,229,138,.22);
-  }
-}
-
-
-/* =========================================================
-   ENTRY INFORMATION TILES
-   ========================================================= */
-
-.entryGrid{
-  margin-top:10px;
-}
-
-.entryTile{
-  position:relative;
-  overflow:hidden;
-  background:
-    linear-gradient(145deg,#0c121a,#090e15);
-  border-color:#202b38;
-  transition:
-    border-color .2s ease,
-    transform .2s ease,
-    background .2s ease;
-}
-
-.entryTile:hover{
-  transform:translateY(-1px);
-  border-color:#354456;
-}
-
-.entryTile span{
-  font-size:7px;
-  letter-spacing:.1em;
-}
-
-.entryTile b{
-  font-size:16px;
-  line-height:1.15;
-}
-
-
-/* STAGE */
-
-.stageCard{
-  border-color:#3a3220;
-}
-
-.stageCard b{
-  color:var(--gold);
-}
-
-
-/* DIRECTION */
-
-.directionCard{
-  border-color:#28323e;
-}
-
-.directionCard b{
-  font-size:19px;
-  letter-spacing:.04em;
-}
-
-
-/* LIVE ASK */
-
-.askCard{
-  border-color:#26333f;
-}
-
-.askCard b{
-  color:#f5f7fa;
-  font-size:18px;
-  font-variant-numeric:tabular-nums;
-}
-
-
-/* QUALITY */
-
-.qualityCard{
-  border-color:#332f20;
-}
-
-.qualityCard b{
-  color:var(--gold);
-  font-size:12px;
-  letter-spacing:.03em;
-}
-
-.sniper.entry ~ .entryGrid .qualityCard{
-  border-color:#205b3d;
-  box-shadow:inset 0 0 18px rgba(53,229,138,.04);
-}
-
-.sniper.entry ~ .entryGrid .qualityCard b{
-  color:var(--up);
-}
-
-
-/* =========================================================
-   DIRECTION COLORS
-   ========================================================= */
-
-.upText{
-  color:var(--up)!important;
-  text-shadow:0 0 12px rgba(53,229,138,.15);
-}
-
-.downText{
-  color:var(--down)!important;
-  text-shadow:0 0 12px rgba(255,89,103,.15);
-}
-
-
-/* =========================================================
-   LIVE ASK FLASH
-   ========================================================= */
-
-@keyframes askFlash{
-  0%{
-    background:#15212b;
-  }
-  45%{
-    background:#213142;
-    box-shadow:0 0 20px rgba(255,255,255,.10);
-  }
-  100%{
-    background:transparent;
-  }
-}
-
-.askChanged{
-  animation:askFlash .45s ease;
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media(max-width:650px){
-
-  .sniper{
-    min-height:100px;
-    padding:14px;
-  }
-
-  .sniper strong{
-    font-size:25px;
-  }
-
-  .sniperReason{
-    max-width:none;
-    margin-top:9px;
-    text-align:left;
-    font-size:8px;
-  }
-
-  .entryGrid{
-    margin-top:7px;
-    gap:6px;
-  }
-
-  .entryTile{
-    padding:9px;
-  }
-
-  .entryTile span{
-    font-size:7px;
-  }
-
-  .entryTile b{
-    font-size:13px;
-  }
-
-  .directionCard b,
-  .askCard b{
-    font-size:16px;
-  }
-
-  .qualityCard b{
-    font-size:10px;
-  }
-}
-
-
-/* =========================================================
-   REDUCE MOTION
-   ========================================================= */
-
-@media(prefers-reduced-motion:reduce){
-
-  .sniper,
-  .sniper.setup,
-  .sniper.entry{
-    animation:none!important;
-    transition:none!important;
   }
 
 }
