@@ -49,7 +49,6 @@ select{
   cursor:pointer;
 }
 
-
 /* =========================================================
    TOP BAR
    ========================================================= */
@@ -147,7 +146,6 @@ select{
   background:var(--gold);
 }
 
-
 /* =========================================================
    CONTROLS
    ========================================================= */
@@ -185,7 +183,6 @@ select:focus-visible{
   outline:2px solid #9d7cff88;
   outline-offset:2px;
 }
-
 
 /* =========================================================
    MAIN GRID
@@ -240,10 +237,17 @@ main{
   grid-column:span 4;
 }
 
-.history{
-  grid-column:span 8;
+/* FIXED HISTORY PANEL */
+.historyPanel{
+  grid-column:span 8 !important;
 }
 
+.historyPanel .history{
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
 
 /* =========================================================
    HEADERS
@@ -273,7 +277,6 @@ main{
   min-width:145px;
   max-width:100%;
 }
-
 
 /* =========================================================
    HERO
@@ -386,9 +389,8 @@ main{
   border-color:#71303a!important;
 }
 
-
 /* =========================================================
-   PRICE
+   BTC PRICE
    ========================================================= */
 
 .spotPair{
@@ -431,7 +433,6 @@ main{
   white-space:nowrap;
 }
 
-
 /* =========================================================
    CHART
    ========================================================= */
@@ -458,9 +459,8 @@ main{
   background:linear-gradient(180deg,#0c121a,#0b1017);
 }
 
-
 /* =========================================================
-   PROBABILITY
+   MODEL PROBABILITY
    ========================================================= */
 
 .probCards{
@@ -564,9 +564,8 @@ main{
   }
 }
 
-
 /* =========================================================
-   FACTORS
+   FACTORS / DIAGNOSTICS
    ========================================================= */
 
 .factorRow,
@@ -608,9 +607,8 @@ main{
   font-variant-numeric:tabular-nums;
 }
 
-
 /* =========================================================
-   ORDER BOOK
+   POLYMARKET BOOK
    ========================================================= */
 
 .bookGrid{
@@ -647,12 +645,14 @@ main{
   font-variant-numeric:tabular-nums;
 }
 
-.bookCard.up>b{
-  color:var(--up);
+.bookCard.up>b,
+#upAsk{
+  color:var(--up)!important;
 }
 
-.bookCard.down>b{
-  color:var(--down);
+.bookCard.down>b,
+#downAsk{
+  color:var(--down)!important;
 }
 
 .bookCard small{
@@ -694,7 +694,6 @@ main{
   font-weight:900;
   white-space:nowrap;
 }
-
 
 /* =========================================================
    SNIPER ENTRY
@@ -795,7 +794,6 @@ main{
   display:block;
 }
 
-
 /* WATCH */
 
 .sniper.watch{
@@ -811,7 +809,6 @@ main{
 .sniper.watch strong{
   color:#b8c2cf;
 }
-
 
 /* SETUP */
 
@@ -851,7 +848,6 @@ main{
       0 0 32px rgba(243,198,77,.15);
   }
 }
-
 
 /* ENTRY */
 
@@ -895,7 +891,6 @@ main{
       0 0 38px rgba(53,229,138,.22);
   }
 }
-
 
 /* =========================================================
    ENTRY INFORMATION TILES
@@ -946,9 +941,6 @@ main{
   font-variant-numeric:tabular-nums;
 }
 
-
-/* STAGE */
-
 .stageCard{
   border-color:#3a3220;
 }
@@ -957,9 +949,6 @@ main{
   color:var(--gold);
   font-size:20px;
 }
-
-
-/* DIRECTION */
 
 .directionCard{
   border-color:#28323e;
@@ -970,9 +959,6 @@ main{
   letter-spacing:.04em;
 }
 
-
-/* LIVE ASK */
-
 .askCard{
   border-color:#26333f;
 }
@@ -981,9 +967,6 @@ main{
   color:#f5f7fa;
   font-size:18px;
 }
-
-
-/* QUALITY */
 
 .qualityCard{
   border-color:#332f20;
@@ -994,12 +977,6 @@ main{
   font-size:12px;
   letter-spacing:.03em;
 }
-
-
-/*
-  .sniper and .entryGrid are siblings,
-  so target the entry cards through the panel.
-*/
 
 .sniperPanel:has(.sniper.entry) .qualityCard{
   border-color:#205b3d;
@@ -1018,9 +995,6 @@ main{
   color:var(--gold);
 }
 
-
-/* DIRECTION COLORS */
-
 .upText{
   color:var(--up)!important;
   text-shadow:0 0 12px rgba(53,229,138,.15);
@@ -1030,9 +1004,6 @@ main{
   color:var(--down)!important;
   text-shadow:0 0 12px rgba(255,89,103,.15);
 }
-
-
-/* LIVE ASK FLASH */
 
 @keyframes askFlash{
   0%{
@@ -1052,7 +1023,6 @@ main{
 .askChanged{
   animation:askFlash .45s ease;
 }
-
 
 /* =========================================================
    EDGE / SPLIT
@@ -1106,7 +1076,6 @@ main{
   max-width:170px;
 }
 
-
 /* =========================================================
    STATS
    ========================================================= */
@@ -1142,7 +1111,6 @@ main{
   overflow-wrap:anywhere;
   font-variant-numeric:tabular-nums;
 }
-
 
 /* =========================================================
    HISTORY
@@ -1193,7 +1161,6 @@ main{
   box-shadow:0 0 10px #ff596766;
 }
 
-
 /* =========================================================
    UTILITY
    ========================================================= */
@@ -1220,815 +1187,6 @@ main{
 
 .diagnostics>div:last-child{
   color:var(--muted);
-}
-
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-footer{
-  width:min(1480px,calc(100% - 36px));
-  margin:0 auto 20px;
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  color:#596678;
-  font-size:9px;
-}
-
-footer button{
-  font-size:8px;
-  padding:5px 8px;
-}
-
-
-/* =========================================================
-   TABLET
-   ========================================================= */
-
-@media(max-width:1100px){
-
-  main{
-    width:calc(100% - 28px);
-    gap:11px;
-  }
-
-  .panel{
-    padding:14px;
-  }
-
-  .hero,
-  .marketChart,
-  .probabilities,
-  .bookPanel,
-  .sniperPanel,
-  .edgePanel,
-  .splitPanel,
-  .diagnostics,
-  .statsPanel,
-  .resultsPanel,
-  .history{
-    grid-column:span 6;
-  }
-
-  .hero{
-    grid-column:span 12;
-  }
-
-  .history{
-    grid-column:span 12;
-  }
-}
-
-
-/* =========================================================
-   SMALL TABLET
-   ========================================================= */
-
-@media(max-width:800px){
-
-  .topbar{
-    padding:12px 14px;
-  }
-
-  main{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .hero,
-  .marketChart,
-  .probabilities,
-  .bookPanel,
-  .sniperPanel,
-  .edgePanel,
-  .splitPanel,
-  .diagnostics,
-  .statsPanel,
-  .resultsPanel,
-  .history{
-    grid-column:span 2;
-  }
-
-  .heroMain{
-    gap:15px;
-  }
-
-  .priceHero strong{
-    font-size:30px;
-  }
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media(max-width:650px){
-
-  html,
-  body{
-    width:100%;
-    max-width:100%;
-    overflow-x:hidden;
-  }
-
-  body{
-    font-size:12px;
-  }
-
-  .topbar{
-    position:sticky;
-    top:0;
-    padding:10px 11px;
-    gap:8px;
-  }
-
-  .brand{
-    gap:9px;
-    min-width:0;
-  }
-
-  .brandMark{
-    width:34px;
-    height:34px;
-    flex-basis:34px;
-    border-radius:10px;
-    font-size:19px;
-  }
-
-  .brand h1{
-    font-size:14px;
-    letter-spacing:.06em;
-  }
-
-  .brand p{
-    font-size:8px;
-    max-width:180px;
-  }
-
-  .topActions{
-    margin-left:auto;
-  }
-
-  .topActions .connection{
-    display:none;
-  }
-
-  .topActions #refresh{
-    padding:7px 9px;
-    font-size:9px;
-  }
-
-  main{
-    width:calc(100% - 16px);
-    margin:8px auto 18px;
-    display:grid;
-    grid-template-columns:1fr;
-    gap:9px;
-  }
-
-  .panel,
-  .hero,
-  .marketChart,
-  .probabilities,
-  .bookPanel,
-  .sniperPanel,
-  .edgePanel,
-  .splitPanel,
-  .diagnostics,
-  .statsPanel,
-  .resultsPanel,
-  .history{
-    grid-column:span 1;
-  }
-
-  .panel{
-    padding:12px;
-    border-radius:13px;
-  }
-
-  .hero{
-    padding:14px;
-  }
-
-  .panelHead{
-    margin-bottom:10px;
-    gap:7px;
-  }
-
-  .panelHead h2{
-    font-size:10px;
-  }
-
-  .panelHead>span{
-    font-size:8px;
-  }
-
-  .panelHead select{
-    min-width:112px;
-    max-width:135px;
-    padding:7px 8px;
-  }
-
-  .heroMain{
-    display:block;
-  }
-
-  .hero h2{
-    font-size:17px;
-    line-height:1.3;
-    margin:6px 0;
-  }
-
-  .heroSub{
-    gap:8px 12px;
-    flex-wrap:wrap;
-  }
-
-  .countdown{
-    text-align:left;
-    margin-top:13px;
-  }
-
-  .countdown strong{
-    font-size:30px;
-  }
-
-  .heroFooter{
-    display:block;
-    margin-top:13px;
-    padding-top:10px;
-  }
-
-  .heroFooter #status{
-    display:block;
-    margin-top:8px;
-    line-height:1.4;
-  }
-
-  .primaryLink{
-    display:inline-block;
-    font-size:8px;
-    padding:7px 9px;
-  }
-
-  .priceHero{
-    gap:12px;
-    align-items:flex-end;
-    flex-wrap:wrap;
-  }
-
-  .priceHero strong{
-    font-size:28px;
-  }
-
-  .signalPill{
-    margin-left:0;
-    font-size:8px;
-    padding:5px 8px;
-  }
-
-  .marketChart canvas{
-    height:125px;
-    margin-top:8px;
-  }
-
-  .chartMeta{
-    gap:8px;
-    flex-wrap:wrap;
-  }
-
-  .probCards,
-  .bookGrid{
-    gap:7px;
-  }
-
-  .probCard,
-  .bookCard{
-    padding:11px;
-  }
-
-  .probCard b,
-  .bookCard>b{
-    font-size:24px;
-  }
-
-  .probCard p{
-    line-height:1.35;
-  }
-
-  .factorRow,
-  .diagGrid,
-  .detailGrid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:6px;
-  }
-
-  .factorRow>div,
-  .diagGrid>div,
-  .detailGrid>div{
-    padding:7px;
-  }
-
-  .factorRow b,
-  .diagGrid b,
-  .detailGrid b{
-    font-size:10px;
-  }
-
-
-  /* SNIPER MOBILE */
-
-  .sniper{
-    display:block;
-    min-height:100px;
-    padding:14px;
-  }
-
-  .sniper strong{
-    font-size:25px;
-  }
-
-  .sniperReason{
-    max-width:none;
-    margin-top:9px;
-    text-align:left;
-    font-size:8px;
-    line-height:1.45;
-  }
-
-  .entryGrid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:6px;
-    margin-top:7px;
-  }
-
-  .entryTile{
-    padding:9px;
-  }
-
-  .entryTile span{
-    font-size:7px;
-  }
-
-  .entryTile b{
-    font-size:14px;
-  }
-
-  .stageCard b,
-  .directionCard b{
-    font-size:18px;
-  }
-
-  .askCard b{
-    font-size:17px;
-  }
-
-  .qualityCard b{
-    font-size:11px;
-  }
-
-
-  /* EDGE / SPLIT */
-
-  .edgeGrid,
-  .splitGrid{
-    gap:6px;
-  }
-
-  .edgeGrid>div,
-  .splitGrid>div{
-    padding:9px;
-  }
-
-  .edgeGrid b,
-  .splitGrid b{
-    font-size:13px;
-  }
-
-  .edgeGrid small{
-    line-height:1.4;
-  }
-
-  .modeLine{
-    align-items:flex-start;
-  }
-
-  .modeLine select{
-    min-width:105px;
-    max-width:140px;
-  }
-
-
-  /* STATS */
-
-  .statsGrid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:6px;
-  }
-
-  .statCard{
-    padding:8px;
-  }
-
-  .statCard b{
-    font-size:15px;
-  }
-
-
-  /* HISTORY */
-
-  .historyRow{
-    grid-template-columns:1fr;
-    gap:3px;
-    padding:8px 0;
-  }
-
-  .recentResults{
-    gap:7px;
-  }
-
-
-  /* FOOTER */
-
-  footer{
-    width:calc(100% - 16px);
-    margin:0 auto 12px;
-    gap:8px;
-    align-items:center;
-    flex-wrap:wrap;
-    line-height:1.35;
-  }
-
-  .hideToggle{
-    padding:5px 7px;
-  }
-}
-
-
-/* =========================================================
-   VERY SMALL PHONES
-   ========================================================= */
-
-@media(max-width:380px){
-
-  .brand p{
-    display:none;
-  }
-
-  .brand h1{
-    font-size:13px;
-  }
-
-  .panel{
-    padding:10px;
-  }
-
-  .hero{
-    padding:12px;
-  }
-
-  .hero h2{
-    font-size:16px;
-  }
-
-  .priceHero strong{
-    font-size:26px;
-  }
-
-  .probCard b,
-  .bookCard>b{
-    font-size:22px;
-  }
-
-  .entryGrid{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .factorRow,
-  .diagGrid,
-  .detailGrid{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .edgeGrid b,
-  .splitGrid b{
-    font-size:12px;
-  }
-
-  .countdown strong{
-    font-size:28px;
-  }
-}
-
-
-/* =========================================================
-   REDUCE MOTION
-   ========================================================= */
-
-@media(prefers-reduced-motion:reduce){
-
-  *,
-  *::before,
-  *::after{
-    scroll-behavior:auto!important;
-    animation-duration:.01ms!important;
-    animation-iteration-count:1!important;
-    transition-duration:.01ms!important;
-  }
-
-}
-/* =========================================================
-   BTC KILLER — FINAL SNIPER ENTRY OVERRIDE
-   ========================================================= */
-
-.sniperPanel .entryGrid.compactEntry {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 12px !important;
-  width: 100% !important;
-  margin-top: 14px !important;
-}
-
-.sniperPanel .entryTile {
-  min-width: 0 !important;
-  min-height: 88px !important;
-  padding: 16px !important;
-  border: 1px solid var(--line) !important;
-  border-radius: 12px !important;
-  background: var(--panel2) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  gap: 8px !important;
-  box-sizing: border-box !important;
-}
-
-.sniperPanel .entryTile span {
-  display: block !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: .12em !important;
-  color: var(--muted) !important;
-}
-
-.sniperPanel .entryTile b {
-  display: block !important;
-  font-size: 22px !important;
-  line-height: 1.1 !important;
-  font-weight: 900 !important;
-  color: var(--text) !important;
-  font-variant-numeric: tabular-nums !important;
-}
-
-.sniperPanel .stageCard b,
-.sniperPanel .directionCard b {
-  font-size: 26px !important;
-}
-
-.sniperPanel .askCard b {
-  color: var(--text) !important;
-}
-
-.sniperPanel .qualityCard b {
-  color: var(--gold) !important;
-}
-
-.sniperPanel .sniper.entry + .entryGrid .qualityCard b {
-  color: var(--up) !important;
-}
-
-.sniperPanel .sniper.setup + .entryGrid .qualityCard b {
-  color: var(--gold) !important;
-}
-
-.sniperPanel .sniperMain {
-  min-width: 0 !important;
-}
-
-.sniperPanel .sniperMain strong {
-  font-size: 34px !important;
-  line-height: 1 !important;
-  font-weight: 900 !important;
-}
-
-.sniperPanel .sniperReason {
-  min-width: 0 !important;
-}
-
-.sniperPanel .sniperReason span {
-  display: block !important;
-  overflow-wrap: anywhere !important;
-}
-
-/* UP / DOWN ASK COLORS */
-.bookCard.up b,
-#upAsk {
-  color: var(--up) !important;
-}
-
-.bookCard.down b,
-#downAsk {
-  color: var(--down) !important;
-}
-
-/* MOBILE */
-@media (max-width: 800px) {
-  .sniperPanel .entryGrid.compactEntry {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .sniperPanel .entryGrid.compactEntry {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
-
-  .sniperPanel .entryTile {
-    min-height: 78px !important;
-    padding: 12px !important;
-  }
-
-  .sniperPanel .entryTile b {
-    font-size: 19px !important;
-  }
-
-  .sniperPanel .stageCard b,
-  .sniperPanel .directionCard b {
-    font-size: 22px !important;
-  }
-
-  .sniperPanel .sniperMain strong {
-    font-size: 28px !important;
-  }
-}
-
-/* =========================================================
-   BTC KILLER — LARGE DESKTOP TEXT MODE
-   ========================================================= */
-
-@media (min-width: 801px) {
-
-  body {
-    font-size: 15px !important;
-  }
-
-  .brand h1 {
-    font-size: 21px !important;
-  }
-
-  .brand p {
-    font-size: 12px !important;
-  }
-
-  .connection {
-    font-size: 11px !important;
-  }
-
-  button,
-  select,
-  .modeLine select,
-  .panelHead select {
-    font-size: 12px !important;
-    padding: 10px 13px !important;
-  }
-
-  .panelHead h2 {
-    font-size: 15px !important;
-  }
-
-  .panelHead > span {
-    font-size: 11px !important;
-  }
-
-  .hero label,
-  .priceHero label {
-    font-size: 11px !important;
-  }
-
-  .hero h2 {
-    font-size: 25px !important;
-  }
-
-  .heroSub {
-    font-size: 11px !important;
-  }
-
-  .priceHero strong {
-    font-size: 42px !important;
-  }
-
-  .probCard b,
-  .bookCard > b {
-    font-size: 30px !important;
-  }
-
-  .probCard small,
-  .bookCard small {
-    font-size: 12px !important;
-  }
-
-  .factorRow,
-  .diagGrid,
-  .detailGrid {
-    font-size: 13px !important;
-  }
-
-  .factorRow span,
-  .diagCard span,
-  .detailGrid span {
-    font-size: 11px !important;
-  }
-
-  .factorRow b,
-  .diagCard b,
-  .detailGrid b {
-    font-size: 16px !important;
-  }
-
-  /* SNIPER ENTRY */
-  .sniperMain small {
-    font-size: 12px !important;
-  }
-
-  .sniperPanel .sniperMain strong {
-    font-size: 40px !important;
-  }
-
-  .sniperReason span {
-    font-size: 14px !important;
-  }
-
-  .sniperPanel .entryTile span {
-    font-size: 12px !important;
-  }
-
-  .sniperPanel .entryTile b {
-    font-size: 26px !important;
-  }
-
-  .sniperPanel .stageCard b,
-  .sniperPanel .directionCard b {
-    font-size: 31px !important;
-  }
-
-  .sniperPanel .qualityCard b {
-    font-size: 18px !important;
-  }
-
-  /* EDGE / SPLIT */
-  .edgeGrid b,
-  .splitGrid b {
-    font-size: 18px !important;
-  }
-
-  .edgeGrid small,
-  .splitGrid small {
-    font-size: 12px !important;
-  }
-
-  .modeLine {
-    font-size: 13px !important;
-  }
-
-  /* STATS */
-  .statCard b {
-    font-size: 21px !important;
-  }
-
-  .statCard span,
-  .statCard small {
-    font-size: 11px !important;
-  }
-
-  /* HISTORY / RESULTS */
-  .historyRow {
-    font-size: 13px !important;
-  }
-
-  .historyRow b {
-    font-size: 15px !important;
-  }
-
-  .resultCard {
-    font-size: 13px !important;
-  }
-
-  .resultCard b {
-    font-size: 17px !important;
-  }
-
-  /* COUNTDOWN */
-  .countdown strong {
-    font-size: 38px !important;
-  }
-
-  /* FOOTER */
-  footer {
-    font-size: 11px !important;
-  }
 }
 
 /* =========================================================
@@ -2183,220 +1341,30 @@ footer button{
   color:var(--gold);
 }
 
-@media(max-width:900px){
-
-  .comparisonLayout{
-    grid-template-columns:1fr;
-  }
-
-  .comparisonRow{
-    grid-template-columns:150px 1fr;
-  }
-
-  .comparisonChanges{
-    grid-column:1 / -1;
-    justify-content:flex-start;
-  }
-
-}
-
-@media(max-width:600px){
-
-  .comparisonPanel{
-    grid-column:span 12;
-  }
-
-  .comparisonRow{
-    grid-template-columns:1fr auto;
-    gap:10px;
-  }
-
-  .comparisonRow>b{
-    font-size:23px;
-  }
-
-  .comparisonChanges{
-    grid-column:1 / -1;
-  }
-
-  .comparisonSide{
-    grid-template-columns:1fr 1fr;
-  }
-
-}
-
 /* =========================================================
-   PRICE COMPARISON
+   FOOTER
    ========================================================= */
 
-.comparisonPanel{
-  grid-column:span 12;
-  overflow:hidden;
-}
-
-.comparisonLayout{
-  display:grid;
-  grid-template-columns:
-    minmax(0,1fr)
-    300px;
-  gap:14px;
-}
-
-.comparisonPrices{
-  display:grid;
-  gap:9px;
-}
-
-.comparisonRow{
-  display:grid;
-  grid-template-columns:
-    190px
-    minmax(150px,1fr)
-    auto;
-
-  align-items:center;
-  gap:18px;
-
-  min-width:0;
-
-  padding:14px 16px;
-
-  border-radius:12px;
-
-  background:#0a1017;
-
-  border:1px solid #202b38;
-
-  transition:
-    border-color .2s ease,
-    transform .2s ease,
-    background .2s ease;
-}
-
-.comparisonRow:hover{
-  transform:translateY(-1px);
-  border-color:#354456;
-}
-
-.comparisonName{
-  min-width:0;
-}
-
-.comparisonName span{
-  display:block;
-  font-size:11px;
-  font-weight:950;
-  letter-spacing:.08em;
-}
-
-.comparisonName small{
-  display:block;
-  margin-top:4px;
-  color:var(--muted);
-  font-size:9px;
-}
-
-.comparisonRow>b{
-  font-size:28px;
-  font-variant-numeric:tabular-nums;
-  letter-spacing:-.02em;
-}
-
-.binanceCompare{
-  border-color:#263544;
-}
-
-.binanceCompare>b{
-  color:var(--text);
-}
-
-.upCompare{
-  border-color:#185638;
-}
-
-.upCompare>b{
-  color:var(--up);
-}
-
-.downCompare{
-  border-color:#642d35;
-}
-
-.downCompare>b{
-  color:var(--down);
-}
-
-.comparisonChanges{
+footer{
+  width:min(1480px,calc(100% - 36px));
+  margin:0 auto 20px;
   display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:10px;
-  white-space:nowrap;
-}
-
-.comparisonChanges span{
-  color:#718094;
+  justify-content:space-between;
+  gap:12px;
+  color:#596678;
   font-size:9px;
-  font-weight:900;
 }
 
-.comparisonChanges strong{
-  display:inline-block;
-  margin-left:3px;
-  font-size:11px;
-  font-variant-numeric:tabular-nums;
+footer button{
+  font-size:8px;
+  padding:5px 8px;
 }
-
-.comparisonSide{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:9px;
-}
-
-.comparisonSide>div{
-  min-width:0;
-  padding:14px;
-
-  border:1px solid #202b38;
-  border-radius:11px;
-
-  background:#0b1118;
-}
-
-.comparisonSide span{
-  display:block;
-  color:#718094;
-  font-size:9px;
-  font-weight:900;
-}
-
-.comparisonSide b{
-  display:block;
-  margin-top:7px;
-  color:#e9eef5;
-  font-size:17px;
-  font-variant-numeric:tabular-nums;
-  overflow-wrap:anywhere;
-}
-
-#compareSpotUpMove{
-  color:var(--up);
-}
-
-#compareSpotDownMove{
-  color:var(--down);
-}
-
-#compareCombined{
-  color:var(--gold);
-}
-
 
 /* =========================================================
-   BIGGER DESKTOP TEXT
+   LARGE DESKTOP
    ========================================================= */
 
-@media (min-width:801px){
+@media(min-width:801px){
 
   body{
     font-size:15px !important;
@@ -2464,13 +1432,13 @@ footer button{
   }
 
   .factorRow span,
-  .diagCard span,
+  .diagGrid span,
   .detailGrid span{
     font-size:11px !important;
   }
 
   .factorRow b,
-  .diagCard b,
+  .diagGrid b,
   .detailGrid b{
     font-size:16px !important;
   }
@@ -2551,146 +1519,78 @@ footer button{
     font-size:11px !important;
   }
 
-  .comparisonRow>b{
-    font-size:30px !important;
-  }
-
+  /* PRICE COMPARISON */
   .comparisonName span{
-    font-size:12px !important;
+    font-size:13px !important;
   }
 
   .comparisonName small{
-    font-size:10px !important;
+    font-size:11px !important;
+  }
+
+  .comparisonRow>b{
+    font-size:34px !important;
+  }
+
+  .comparisonChanges span{
+    font-size:11px !important;
   }
 
   .comparisonChanges strong{
-    font-size:12px !important;
+    font-size:13px !important;
+  }
+
+  .comparisonSide span{
+    font-size:11px !important;
   }
 
   .comparisonSide b{
-    font-size:19px !important;
+    font-size:20px !important;
   }
 }
 
-
 /* =========================================================
-   SNIPER ENTRY
+   TABLET
    ========================================================= */
 
-.sniperPanel .entryGrid.compactEntry{
-  display:grid !important;
+@media(max-width:1100px){
 
-  grid-template-columns:
-    repeat(
-     4,
-     minmax(0,1fr)
-    ) !important;
+  main{
+    width:calc(100% - 28px);
+    gap:11px;
+  }
 
-  gap:12px !important;
+  .panel{
+    padding:14px;
+  }
 
-  width:100% !important;
+  .hero,
+  .marketChart,
+  .probabilities,
+  .bookPanel,
+  .sniperPanel,
+  .edgePanel,
+  .splitPanel,
+  .diagnostics,
+  .statsPanel,
+  .resultsPanel{
+    grid-column:span 6;
+  }
 
-  margin-top:14px !important;
-}
+  .hero{
+    grid-column:span 12;
+  }
 
-.sniperPanel .entryTile{
-  min-width:0 !important;
-
-  min-height:88px !important;
-
-  padding:16px !important;
-
-  border:1px solid var(--line) !important;
-
-  border-radius:12px !important;
-
-  background:var(--panel2) !important;
-
-  display:flex !important;
-
-  flex-direction:column !important;
-
-  justify-content:center !important;
-
-  gap:8px !important;
-
-  box-sizing:border-box !important;
-}
-
-.sniperPanel .entryTile span{
-  color:var(--muted) !important;
-
-  font-size:11px !important;
-
-  font-weight:900 !important;
-
-  letter-spacing:.08em !important;
-}
-
-.sniperPanel .entryTile b{
-  font-size:22px !important;
-
-  font-weight:950 !important;
-
-  line-height:1 !important;
-
-  font-variant-numeric:
-   tabular-nums !important;
-}
-
-.sniperPanel .stageCard b,
-.sniperPanel .directionCard b{
-  font-size:26px !important;
-}
-
-.sniperPanel .askCard b{
-  color:var(--text) !important;
-}
-
-.sniperPanel .qualityCard b{
-  color:var(--gold) !important;
-}
-
-.sniperPanel .sniper.entry+
-.entryGrid .qualityCard b{
-  color:var(--up) !important;
-}
-
-.sniperPanel .sniper.setup+
-.entryGrid .qualityCard b{
-  color:var(--gold) !important;
-}
-
-.sniperPanel .sniperMain strong{
-  font-size:34px !important;
-  font-weight:950 !important;
-}
-
-.bookCard.up b,
-#upAsk{
-  color:var(--up) !important;
-}
-
-.bookCard.down b,
-#downAsk{
-  color:var(--down) !important;
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media(max-width:900px){
+  .historyPanel{
+    grid-column:span 12 !important;
+  }
 
   .comparisonLayout{
     grid-template-columns:1fr;
   }
 
   .comparisonRow{
-    grid-template-columns:
-      150px
-      1fr;
+    grid-template-columns:150px 1fr;
   }
 
   .comparisonChanges{
@@ -2699,15 +1599,44 @@ footer button{
   }
 }
 
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
 
 @media(max-width:800px){
 
+  .topbar{
+    padding:12px 14px;
+  }
+
+  main{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .hero,
+  .marketChart,
+  .probabilities,
+  .bookPanel,
+  .sniperPanel,
+  .edgePanel,
+  .splitPanel,
+  .diagnostics,
+  .statsPanel,
+  .resultsPanel,
+  .historyPanel{
+    grid-column:span 2 !important;
+  }
+
+  .heroMain{
+    gap:15px;
+  }
+
+  .priceHero strong{
+    font-size:30px;
+  }
+
   .sniperPanel .entryGrid.compactEntry{
-    grid-template-columns:
-      repeat(
-       2,
-       minmax(0,1fr)
-      ) !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
   }
 
   .sniperPanel .entryTile b{
@@ -2715,19 +1644,365 @@ footer button{
   }
 }
 
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
-@media(max-width:600px){
+@media(max-width:650px){
+
+  html,
+  body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    font-size:12px;
+  }
+
+  .topbar{
+    position:sticky;
+    top:0;
+    padding:10px 11px;
+    gap:8px;
+  }
+
+  .brand{
+    gap:9px;
+    min-width:0;
+  }
+
+  .brandMark{
+    width:34px;
+    height:34px;
+    flex-basis:34px;
+    border-radius:10px;
+    font-size:19px;
+  }
+
+  .brand h1{
+    font-size:14px;
+    letter-spacing:.06em;
+  }
+
+  .brand p{
+    font-size:8px;
+    max-width:180px;
+  }
+
+  .topActions{
+    margin-left:auto;
+  }
+
+  .topActions .connection{
+    display:none;
+  }
+
+  .topActions #refresh{
+    padding:7px 9px;
+    font-size:9px;
+  }
+
+  main{
+    width:calc(100% - 16px);
+    margin:8px auto 18px;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+
+  .panel,
+  .hero,
+  .marketChart,
+  .probabilities,
+  .bookPanel,
+  .sniperPanel,
+  .edgePanel,
+  .splitPanel,
+  .diagnostics,
+  .statsPanel,
+  .resultsPanel,
+  .historyPanel{
+    grid-column:span 1 !important;
+  }
+
+  .panel{
+    padding:12px;
+    border-radius:13px;
+  }
+
+  .hero{
+    padding:14px;
+  }
+
+  .panelHead{
+    margin-bottom:10px;
+    gap:7px;
+  }
+
+  .panelHead h2{
+    font-size:10px;
+  }
+
+  .panelHead>span{
+    font-size:8px;
+  }
+
+  .panelHead select{
+    min-width:112px;
+    max-width:135px;
+    padding:7px 8px;
+  }
+
+  .heroMain{
+    display:block;
+  }
+
+  .hero h2{
+    font-size:17px;
+    line-height:1.3;
+    margin:6px 0;
+  }
+
+  .heroSub{
+    gap:8px 12px;
+    flex-wrap:wrap;
+  }
+
+  .countdown{
+    text-align:left;
+    margin-top:13px;
+  }
+
+  .countdown strong{
+    font-size:30px;
+  }
+
+  .heroFooter{
+    display:block;
+    margin-top:13px;
+    padding-top:10px;
+  }
+
+  .heroFooter #status{
+    display:block;
+    margin-top:8px;
+    line-height:1.4;
+  }
+
+  .primaryLink{
+    display:inline-block;
+    font-size:8px;
+    padding:7px 9px;
+  }
+
+  .priceHero{
+    gap:12px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+  }
+
+  .priceHero strong{
+    font-size:28px;
+  }
+
+  .signalPill{
+    margin-left:0;
+    font-size:8px;
+    padding:5px 8px;
+  }
+
+  .marketChart canvas{
+    height:125px;
+    margin-top:8px;
+  }
+
+  .chartMeta{
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .probCards,
+  .bookGrid{
+    gap:7px;
+  }
+
+  .probCard,
+  .bookCard{
+    padding:11px;
+  }
+
+  .probCard b,
+  .bookCard>b{
+    font-size:24px;
+  }
+
+  .probCard p{
+    line-height:1.35;
+  }
+
+  .factorRow,
+  .diagGrid,
+  .detailGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+
+  .factorRow>div,
+  .diagGrid>div,
+  .detailGrid>div{
+    padding:7px;
+  }
+
+  .factorRow b,
+  .diagGrid b,
+  .detailGrid b{
+    font-size:10px;
+  }
+
+  /* =====================================================
+     SNIPER MOBILE
+     ===================================================== */
+
+  .sniper{
+    display:block;
+    min-height:100px;
+    padding:14px;
+  }
+
+  .sniper strong{
+    font-size:25px;
+  }
+
+  .sniperReason{
+    max-width:none;
+    margin-top:9px;
+    text-align:left;
+    font-size:8px;
+    line-height:1.45;
+  }
+
+  .sniperPanel .entryGrid.compactEntry{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:7px !important;
+    margin-top:9px !important;
+  }
+
+  .sniperPanel .entryTile{
+    min-height:78px !important;
+    padding:11px !important;
+  }
+
+  .sniperPanel .entryTile span{
+    font-size:8px !important;
+  }
+
+  .sniperPanel .entryTile b{
+    font-size:17px !important;
+  }
+
+  .sniperPanel .stageCard b,
+  .sniperPanel .directionCard b{
+    font-size:20px !important;
+  }
+
+  .sniperPanel .askCard b{
+    font-size:17px !important;
+  }
+
+  .sniperPanel .qualityCard b{
+    font-size:12px !important;
+  }
+
+  /* =====================================================
+     EDGE / SPLIT
+     ===================================================== */
+
+  .edgeGrid,
+  .splitGrid{
+    gap:6px;
+  }
+
+  .edgeGrid>div,
+  .splitGrid>div{
+    padding:9px;
+  }
+
+  .edgeGrid b,
+  .splitGrid b{
+    font-size:13px;
+  }
+
+  .edgeGrid small{
+    line-height:1.4;
+  }
+
+  .modeLine{
+    align-items:flex-start;
+  }
+
+  .modeLine select{
+    min-width:105px;
+    max-width:140px;
+  }
+
+  /* =====================================================
+     STATS
+     ===================================================== */
+
+  .statsGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+
+  .statCard{
+    padding:8px;
+  }
+
+  .statCard b{
+    font-size:15px;
+  }
+
+  /* =====================================================
+     HISTORY
+     ===================================================== */
+
+  .historyRow{
+    grid-template-columns:1fr;
+    gap:3px;
+    padding:8px 0;
+  }
+
+  .recentResults{
+    gap:7px;
+  }
+
+  /* =====================================================
+     PRICE COMPARISON MOBILE
+     ===================================================== */
 
   .comparisonPanel{
-    grid-column:span 12;
+    grid-column:span 1 !important;
+  }
+
+  .comparisonLayout{
+    grid-template-columns:1fr;
+    gap:9px;
   }
 
   .comparisonRow{
-    grid-template-columns:
-      1fr
-      auto;
-
+    grid-template-columns:1fr auto;
     gap:10px;
+    padding:12px;
+  }
+
+  .comparisonName span{
+    font-size:10px;
+  }
+
+  .comparisonName small{
+    font-size:8px;
   }
 
   .comparisonRow>b{
@@ -2736,33 +2011,132 @@ footer button{
 
   .comparisonChanges{
     grid-column:1 / -1;
+    justify-content:flex-start;
+    gap:9px;
+  }
+
+  .comparisonChanges span{
+    font-size:8px;
+  }
+
+  .comparisonChanges strong{
+    font-size:10px;
   }
 
   .comparisonSide{
-    grid-template-columns:
-      1fr 1fr;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+
+  .comparisonSide>div{
+    padding:11px;
+  }
+
+  .comparisonSide span{
+    font-size:8px;
+  }
+
+  .comparisonSide b{
+    font-size:15px;
+  }
+
+  /* =====================================================
+     FOOTER
+     ===================================================== */
+
+  footer{
+    width:calc(100% - 16px);
+    margin:0 auto 12px;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    line-height:1.35;
+  }
+
+  .hideToggle{
+    padding:5px 7px;
   }
 }
 
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
 
-@media(max-width:480px){
+@media(max-width:380px){
 
-  .sniperPanel .entryGrid.compactEntry{
-    grid-template-columns:
-      repeat(
-       2,
-       minmax(0,1fr)
-      ) !important;
-
-    gap:8px !important;
+  .brand p{
+    display:none;
   }
 
-  .sniperPanel .entryTile{
-    min-height:82px !important;
-    padding:13px !important;
+  .brand h1{
+    font-size:13px;
   }
 
-  .sniperPanel .entryTile b{
-    font-size:19px !important;
+  .panel{
+    padding:10px;
+  }
+
+  .hero{
+    padding:12px;
+  }
+
+  .hero h2{
+    font-size:16px;
+  }
+
+  .priceHero strong{
+    font-size:26px;
+  }
+
+  .probCard b,
+  .bookCard>b{
+    font-size:22px;
+  }
+
+  .entryGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .factorRow,
+  .diagGrid,
+  .detailGrid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .edgeGrid b,
+  .splitGrid b{
+    font-size:12px;
+  }
+
+  .countdown strong{
+    font-size:28px;
+  }
+
+  .comparisonRow{
+    padding:10px;
+  }
+
+  .comparisonRow>b{
+    font-size:20px;
+  }
+
+  .comparisonSide b{
+    font-size:14px;
+  }
+}
+
+/* =========================================================
+   REDUCE MOTION
+   ========================================================= */
+
+@media(prefers-reduced-motion:reduce){
+
+  *,
+  *::before,
+  *::after{
+    scroll-behavior:auto!important;
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
   }
 }
